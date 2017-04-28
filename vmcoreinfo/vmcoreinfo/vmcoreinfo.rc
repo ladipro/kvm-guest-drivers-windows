@@ -1,0 +1,19 @@
+/*
+ * Copyright (C) 2017 Red Hat, Inc.
+ */
+
+#include <windows.h>
+
+#include <windows.h>
+#include <ntverp.h>
+
+#include "..\..\Tools\vendor.ver"
+
+#undef  VER_FILEDESCRIPTION_STR
+#undef  VER_INTERNALNAME_STR
+
+#define VENDOR_VIRTIO_PRODUCT      QEMU_PRODUCT_PREFIX "VMCoreInfo Device"
+#define VER_FILEDESCRIPTION_STR    VENDOR_DESC_PREFIX "VMCoreInfo Driver" VENDOR_DESC_POSTFIX
+#define VER_INTERNALNAME_STR       "vmcoreinfo.sys"
+
+#include "common.ver"

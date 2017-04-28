@@ -1,0 +1,91 @@
+;/*++
+;
+;INX_COPYRIGHT_1
+;INX_COPYRIGHT_2
+;
+;Module Name:
+;    vmcoreinfo.inf
+;
+;Abstract:
+;
+;Installation Notes:
+;    Using Devcon: Type "devcon install vmcoreinfo.inf ACPI\QEMUVMCI" to install
+;
+;--*/
+
+[Version]
+Signature       = "$WINDOWS NT$"
+Class           = System
+ClassGuid       = {4d36e97d-e325-11ce-bfc1-08002be10318}
+Provider        = %VENDOR%
+DriverVer=01/01/2008,0.0.0.1 ; this line will be replaced with stampinf
+CatalogFile     = vmcoreinfo.cat
+PnpLockdown     = 1
+
+[DestinationDirs]
+DefaultDestDir = 12
+VMCoreInfo_Device_CoInstaller_CopyFiles = 11
+
+[SourceDisksNames]
+1 = %DiskName%,,,""
+
+[SourceDisksFiles]
+vmcoreinfo.sys = 1,,
+WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll=1 ; make sure the number matches with SourceDisksNames
+
+; ---------------
+; Install Section
+; ---------------
+
+[Manufacturer]
+%VENDOR% = VMCoreInfo,NT$ARCH$
+
+[VMCoreInfo.NT$ARCH$]
+%VMCoreInfo.DeviceDesc% = VMCoreInfo_Device, ACPI\QEMUVMCI
+
+[VMCoreInfo_Device.NT]
+CopyFiles = VMCoreInfo_CopyFiles
+
+[VMCoreInfo_CopyFiles]
+vmcoreinfo.sys
+
+; --------------------
+; Service Installation
+; --------------------
+
+[VMCoreInfo_Device.NT.Services]
+AddService = VMCoreInfo,0x00000002,VMCoreInfo_Service_Install
+
+[VMCoreInfo_Service_Install]
+DisplayName    = %VMCoreInfo.Service%
+ServiceType    = 1               ; SERVICE_KERNEL_DRIVER
+StartType      = 3               ; SERVICE_DEMAND_START
+ErrorControl   = 1               ; SERVICE_ERROR_NORMAL
+ServiceBinary  = %12%\vmcoreinfo.sys
+LoadOrderGroup = Extended Base
+
+; ----------------
+; WDF Installation
+; ----------------
+
+[VMCoreInfo_Device.NT.CoInstallers]
+AddReg=VMCoreInfo_Device_CoInstaller_AddReg
+CopyFiles=VMCoreInfo_Device_CoInstaller_CopyFiles
+
+[VMCoreInfo_Device_CoInstaller_AddReg]
+HKR,,CoInstallers32,0x00010000, "WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll,WdfCoInstaller"
+
+[VMCoreInfo_Device_CoInstaller_CopyFiles]
+WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll
+
+[VMCoreInfo_Device.NT.Wdf]
+KmdfService = VMCoreInfo, VMCoreInfo_wdfsect
+
+[VMCoreInfo_wdfsect]
+KmdfLibraryVersion = $KMDFVERSION$
+
+[Strings]
+VENDOR = "INX_COMPANY"
+DiskName            = "INX_PREFIX_QEMUQEMU VMCoreInfo Installation Disk"
+VMCoreInfo.DeviceDesc  = "INX_PREFIX_QEMUQEMU VMCoreInfo Device"
+VMCoreInfo.Service     = "INX_PREFIX_QEMUQEMU VMCoreInfo Service"
