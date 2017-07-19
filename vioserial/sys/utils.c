@@ -18,6 +18,7 @@
 #endif
 
 #define     TEMP_BUFFER_SIZE        256
+#define PRINT_DEBUG
 
 // Global debug printout level and enable\disable flag
 int virtioDebugLevel;
@@ -97,7 +98,7 @@ void InitializeDebugPrints(IN PDRIVER_OBJECT  DriverObject, PUNICODE_STRING Regi
     UNREFERENCED_PARAMETER(RegistryPath);
 
     bDebugPrint = 1;
-    driverDebugLevel = TRACE_LEVEL_FATAL;
+    driverDebugLevel = TRACE_LEVEL_VERBOSE;
     virtioDebugLevel = -1;
 }
 

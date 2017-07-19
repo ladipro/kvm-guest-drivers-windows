@@ -81,6 +81,8 @@ VIOSerialCtrlWorkHandler(
     WdfSpinLockAcquire(pContext->CVqLock);
     while ((buf = virtqueue_get_buf(vq, &len)))
     {
+        TraceEvents(TRACE_LEVEL_ERROR, DBG_PNP, "### Got some\n", __FUNCTION__, __LINE__);
+
         WdfSpinLockRelease(pContext->CVqLock);
         buf->len = len;
         buf->offset = 0;

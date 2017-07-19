@@ -1,6 +1,8 @@
 #ifndef _LINUX_VIRTIO_H
 #define _LINUX_VIRTIO_H
 
+#include "virtio_ring.h"
+
 #define scatterlist VirtIOBufferDescriptor
 
 struct VirtIOBufferDescriptor {
@@ -21,9 +23,13 @@ struct VirtIOBufferDescriptor {
  */
 struct virtqueue {
     VirtIODevice *vdev;
+    struct vring vring;
     unsigned int index;
     unsigned int num_free;
     void *priv;
+    u16 last_used;
+    void (*notification_cb)(struct virtqueue *vq);
+    void *data[];
 };
 
 int virtqueue_add_buf(struct virtqueue *vq,
@@ -51,8 +57,6 @@ bool virtqueue_enable_cb(struct virtqueue *vq);
 bool virtqueue_enable_cb_delayed(struct virtqueue *vq);
 
 void *virtqueue_detach_unused_buf(struct virtqueue *vq);
-
-unsigned int virtqueue_get_vring_size(struct virtqueue *vq);
 
 BOOLEAN virtqueue_is_interrupt_enabled(struct virtqueue *_vq);
 

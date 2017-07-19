@@ -502,8 +502,10 @@ VIOSerialEvtDeviceD0Entry(
     else
     {
         status = VIOSerialInitAllQueues(Device);
+        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "%s: VIOSerialInitAllQueues returned %x\n", __FUNCTION__, status);
         if (NT_SUCCESS(status) && pContext->isHostMultiport)
         {
+            TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "%s: Filling ctrl queue\n", __FUNCTION__);
             status = VIOSerialFillQueue(pContext->c_ivq, pContext->CVqLock);
         }
 

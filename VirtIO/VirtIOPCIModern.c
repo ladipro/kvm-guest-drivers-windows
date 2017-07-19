@@ -303,7 +303,7 @@ static NTSTATUS vio_modern_setup_vq(struct virtqueue **queue,
     /* create the vring */
     vq = vring_new_virtqueue(index, info->num,
         SMP_CACHE_BYTES, vdev,
-        true, info->queue, vp_notify, vq_addr);
+        info->queue, vp_notify, vq_addr);
     if (!vq) {
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto err_new_queue;
@@ -313,9 +313,9 @@ static NTSTATUS vio_modern_setup_vq(struct virtqueue **queue,
     iowrite16(vdev, info->num, &cfg->queue_size);
     iowrite64_twopart(vdev, mem_get_physical_address(vdev, info->queue),
         &cfg->queue_desc_lo, &cfg->queue_desc_hi);
-    iowrite64_twopart(vdev, mem_get_physical_address(vdev, virtqueue_get_avail(vq)),
+    iowrite64_twopart(vdev, mem_get_physical_address(vdev, vq->vring.avail),
         &cfg->queue_avail_lo, &cfg->queue_avail_hi);
-    iowrite64_twopart(vdev, mem_get_physical_address(vdev, virtqueue_get_used(vq)),
+    iowrite64_twopart(vdev, mem_get_physical_address(vdev, vq->vring.used),
         &cfg->queue_used_lo, &cfg->queue_used_hi);
 
     if (vdev->notify_base) {
