@@ -31,6 +31,19 @@
 #define bool int
 #endif
 
+FORCEINLINE
+VOID
+KeMemoryBarrier (
+    VOID
+    )
+{
+    LONG Barrier;
+
+    __asm {
+        xchg Barrier, eax
+    }
+}
+
 #define mb()   KeMemoryBarrier()
 #define rmb()  KeMemoryBarrier()
 #define wmb()  KeMemoryBarrier()

@@ -6,6 +6,7 @@
 set _OSMASK_=
 if exist %BUILDROOT%\bin\SelfSign\signability.exe set USESIGNABILITY=old
 if /i "%1"=="signXP" goto signXP%USESIGNABILITY%
+if /i "%1"=="sign2K" goto sign2K
 echo unsupported parameter %1
 goto :eof
 :create
@@ -23,11 +24,17 @@ if /i "%1"=="x64" set _OSMASK_=XP_X64,Server2003_X64
 call :dosign %1 %2 %3 
 goto :eof
 
+:sign2K
+shift
+if /i "%1"=="x86" set _OSMASK_=2000
+call :dosign %1 %2 %3 
+goto :eof
+
 :_stampinf
 ..\..\Tools\xdate.exe -u > timestamp.txt
 set /p STAMPINF_DATE= < timestamp.txt
 del timestamp.txt
-stampinf -f %1 -v %2 -a %_BUILDARCH%.%_NT_TARGET_MAJ_ARCH%.%_NT_TARGET_MIN_ARCH%
+"C:\Program Files (x86)\Windows Kits\10\bin\x86\stampinf.exe" -f %1 -v %2 -a %_BUILDARCH%.%_NT_TARGET_MAJ_ARCH%.%_NT_TARGET_MIN_ARCH%
 goto :eof
 
 :dosign
@@ -36,7 +43,7 @@ echo INF file %2
 echo VERSION file %3
 echo Target OS mask %_OSMASK_% 
 call :_stampinf %2 %3
-inf2cat /driver:%~dp2 /os:%_OSMASK_%
+C:\WinDDK\7600.16385.1\bin\selfsign\inf2cat /driver:%~dp2 /os:%_OSMASK_%
 goto :eof
 
 :signXPold

@@ -25,7 +25,9 @@ static ULONG            gID = 0;
 /******************************************************
 Unload handler, only responsibility is cleanup WPP
 *******************************************************/
+#if NDIS_MINIPORT_MAJOR_VERSION >= 6
 DRIVER_UNLOAD ParaVirtualNICUnload;
+#endif
 static VOID ParaVirtualNICUnload(IN  PDRIVER_OBJECT  pDriverObject)
 {
     DEBUG_ENTRY(0);
@@ -361,6 +363,7 @@ static VOID ParaNdis5_MiniportISR(OUT PBOOLEAN InterruptRecognized,
 
 #ifdef NDIS51_MINIPORT
 
+#if NDIS_MINIPORT_MAJOR_VERSION >= 6
 /*************************************************************
 Parameters:
 
@@ -378,6 +381,7 @@ VOID ParaNdis5_PnPEventNotify(IN NDIS_HANDLE MiniportAdapterContext,
 #endif /* NDIS51_MINIPORT */
 
 
+#endif
 
 /*************************************************************
 Driver's entry point
@@ -430,9 +434,11 @@ NDIS_STATUS DriverEntry(PVOID DriverObject,PVOID RegistryPath)
         chars.CheckForHangHandler       = ParaNdis5_CheckForHang; //optional
 
 #ifdef NDIS51_MINIPORT
+#if NDIS_MINIPORT_MAJOR_VERSION >= 6
         chars.CancelSendPacketsHandler  = ParaNdis5_CancelSendPackets;
         chars.PnPEventNotifyHandler     = ParaNdis5_PnPEventNotify;
         chars.AdapterShutdownHandler    = ParaNdis5_Shutdown;
+#endif
 #endif
         status = NdisMRegisterMiniport(
             DriverHandle,

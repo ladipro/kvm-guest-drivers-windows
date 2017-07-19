@@ -17,7 +17,7 @@
 
 setlocal
 
-if "%DDKVER%"=="" set DDKVER=7600.16385.1
+if "%DDKVER%"=="" set DDKVER=3790.1830
 set BUILDROOT=C:\WINDDK\%DDKVER%
 set X64ENV=x64
 if "%DDKVER%"=="6000" set X64ENV=amd64
@@ -33,7 +33,7 @@ if not "%1"=="" goto parameters_here
 echo no parameters specified, rebuild all
 call clean.bat
 echo "clean done"
-call "%0" XP XP64 XPCHK XP64CHK 
+call "%0" W2K
 goto :eof
 :parameters_here
 
@@ -57,6 +57,22 @@ set _NT_TARGET_MIN=%_RHEL_RELEASE_VERSION_%
 set _VERSION_=%_NT_TARGET_MAJ%.%_NT_TARGET_MIN%.%_MAJORVERSION_%.%_MINORVERSION_%
 echo version set: %_VERSION_%
 goto :eof
+
+:W2K
+setlocal
+pushd %BUILDROOT%
+call %BUILDROOT%\bin\setenv.bat %BUILDROOT% fre W2K no_prefast
+popd
+call :preparebuild
+build -cZg
+
+if %ERRORLEVEL% NEQ 0 (
+	endlocal
+	exit /B 1
+)
+call tools\makeinstall x86 wxp\objfre_w2k_x86\i386\netkvm.sys wxp\netkvm.inf %_VERSION_% 2K Install
+endlocal
+goto continue
 
 :XP
 setlocal

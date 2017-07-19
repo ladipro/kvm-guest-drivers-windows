@@ -59,7 +59,9 @@ static NDIS_OID SupportedOids[] = {
     OID_GEN_MAXIMUM_SEND_PACKETS,
     OID_GEN_XMIT_OK,
     OID_GEN_RCV_OK,
+#if NDIS_MINIPORT_MAJOR_VERSION >= 6
     OID_GEN_VLAN_ID,
+#endif
     OID_GEN_XMIT_ERROR,
     OID_GEN_RCV_ERROR,
     OID_GEN_RCV_NO_BUFFER,
@@ -167,10 +169,12 @@ OIDENTRY(OID_802_3_XMIT_UNDERRUN,               2,0,4, ohfQuery3264     ),
 OIDENTRY(OID_802_3_XMIT_HEARTBEAT_FAILURE,      2,0,4, ohfQuery3264     ),
 OIDENTRY(OID_802_3_XMIT_TIMES_CRS_LOST,         2,0,4, ohfQuery3264     ),
 OIDENTRY(OID_802_3_XMIT_LATE_COLLISIONS,        2,0,4, ohfQuery3264     ),
+#if NDIS_MINIPORT_MAJOR_VERSION >= 6
 OIDENTRY(OID_GEN_MACHINE_NAME,                  2,4,4, 0                ),
 OIDENTRY(OID_IP4_OFFLOAD_STATS,                 4,4,4, 0                ),
 OIDENTRY(OID_IP6_OFFLOAD_STATS,                 4,4,4, 0                ),
 OIDENTRY(OID_802_11_CAPABILITY,                 4,4,4, 0                ),
+#endif
 OIDENTRYPROC(OID_PNP_ADD_WAKE_UP_PATTERN,       2,0,4, ohfSet,          ParaNdis_OnAddWakeupPattern),
 OIDENTRYPROC(OID_PNP_REMOVE_WAKE_UP_PATTERN,    2,0,4, ohfSet,          ParaNdis_OnRemoveWakeupPattern),
 OIDENTRYPROC(OID_PNP_ENABLE_WAKE_UP,            2,0,4, ohfQuerySet,     ParaNdis_OnEnableWakeup),
@@ -180,7 +184,9 @@ OIDENTRYPROC(OID_GEN_CURRENT_PACKET_FILTER,     2,0,4, ohfQuerySet,     ParaNdis
 OIDENTRYPROC(OID_802_3_MULTICAST_LIST,          2,0,4, ohfQuerySet,     ParaNdis_OnOidSetMulticastList),
 OIDENTRY(OID_FFP_SUPPORT,                       2,4,4, 0                ),
 OIDENTRYPROC(OID_TCP_TASK_OFFLOAD,              0,0,0, ohfQuerySet, OnOidSetNdis5Offload),
+#if NDIS_MINIPORT_MAJOR_VERSION >= 6
 OIDENTRYPROC(OID_GEN_VLAN_ID,                   0,4,4, ohfQuerySet, ParaNdis_OnSetVlanId),
+#endif
 OIDENTRY(0x00010203 /*(OID_GEN_RECEIVE_SCALE_CAPABILITIES)*/, 2,4,4, 0  ),
 OIDENTRY(0x0001021F /*(OID_GEN_RECEIVE_HASH)*/, 2,4,4, 0                ),
 OIDENTRY(0,                                     4,4,4, 0),
@@ -418,7 +424,9 @@ static BOOLEAN IsValidPls(  PARANDIS_ADAPTER *pContext, NDIS_TASK_TCP_LARGE_SEND
     tOffloadSettingsFlags f;
     BOOLEAN bInvalid = FALSE;
     ParaNdis_ResetOffloadSettings(pContext, &f, NULL);
+#if NDIS_MINIPORT_MAJOR_VERSION >= 6
     bInvalid |= pls->Version != NDIS_TASK_TCP_LARGE_SEND_V0;
+#endif
     bInvalid |= pls->IpOptions && !f.fTxLsoIP;
     bInvalid |= pls->TcpOptions && !f.fTxLsoTCP;
     bInvalid |= (pls->IpOptions || pls->TcpOptions || pls->MaxOffLoadSize) && !f.fTxLso;
@@ -630,7 +638,9 @@ static BOOLEAN GetLargeSendCapabilities(
     tOffloadSettingsFlags f;
     NdisZeroMemory(pls, sizeof(*pls));
     ParaNdis_ResetOffloadSettings(pContext, &f, NULL);
+#if NDIS_MINIPORT_MAJOR_VERSION >= 6
     pls->Version = NDIS_TASK_TCP_LARGE_SEND_V0;
+#endif
     pls->IpOptions = !!f.fTxLsoIP;
     pls->TcpOptions = !!f.fTxLsoTCP;
     pls->MinSegmentCount = PARANDIS_MIN_LSO_SEGMENTS;
