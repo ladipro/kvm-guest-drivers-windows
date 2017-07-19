@@ -57,11 +57,20 @@
 // PARANDIS_MINOR_DRIVER_VERSION
 
 #if !defined(NDIS_MINIPORT_MAJOR_VERSION) || !defined(NDIS_MINIPORT_MINOR_VERSION)
+#ifdef NDIS50_MINIPORT
+#define NDIS_MINIPORT_MAJOR_VERSION 5
+#define NDIS_MINIPORT_MINOR_VERSION 0
+#else
 #error "Something is wrong with NDIS environment"
+#endif
 #endif
 
 #if !defined(PARANDIS_MAJOR_DRIVER_VERSION) || !defined(PARANDIS_MINOR_DRIVER_VERSION)
 #error "Something is wrong with our versioning"
+#endif
+
+#if NDIS_MINIPORT_MAJOR_VERSION < 6
+#define InterlockedOr _InterlockedOr
 #endif
 
 //define to see when the status register is unreadable(see ParaNdis_ResetVirtIONetDevice)
@@ -464,7 +473,9 @@ typedef struct _tagPARANDIS_ADAPTER
     UINT                    NetMaxReceiveBuffers;
     struct VirtIOBufferDescriptor *sgTxGatherTable;
     UINT                    nPnpEventIndex;
+#if NDIS_MINIPORT_MAJOR_VERSION >= 6
     NDIS_DEVICE_PNP_EVENT   PnpEvents[16];
+#endif
     tOffloadSettings        Offload;
     NDIS_OFFLOAD_PARAMETERS InitialOffloadParameters;
     // we keep these members common for XP and Vista
@@ -558,12 +569,12 @@ BOOLEAN FORCEINLINE IsValidVlanId(PARANDIS_ADAPTER *pContext, ULONG VlanID)
 
 BOOLEAN FORCEINLINE IsVlanSupported(PARANDIS_ADAPTER *pContext)
 {
-    return pContext->ulPriorityVlanSetting & 2;
+    return !!(pContext->ulPriorityVlanSetting & 2);
 }
 
 BOOLEAN FORCEINLINE IsPrioritySupported(PARANDIS_ADAPTER *pContext)
 {
-    return pContext->ulPriorityVlanSetting & 1;
+    return !!(pContext->ulPriorityVlanSetting & 1);
 }
 
 BOOLEAN ParaNdis_ValidateMacAddress(
@@ -620,11 +631,13 @@ ParaNDIS_IsQueueInterruptEnabled(struct virtqueue * _vq)
     return virtqueue_is_interrupt_enabled(_vq);
 }
 
+#if NDIS_MINIPORT_MAJOR_VERSION >= 6
 VOID ParaNdis_OnPnPEvent(
     PARANDIS_ADAPTER *pContext,
     NDIS_DEVICE_PNP_EVENT pEvent,
     PVOID   pInfo,
     ULONG   ulSize);
+#endif
 
 BOOLEAN ParaNdis_OnLegacyInterrupt(
     PARANDIS_ADAPTER *pContext,

@@ -25,6 +25,7 @@ int bDebugPrint = 1;
 
 static NDIS_SPIN_LOCK CrashLock;
 
+#if NDIS_MINIPORT_MAJOR_VERSION >= 6
 static KBUGCHECK_REASON_CALLBACK_ROUTINE ParaNdis_OnBugCheck;
 static VOID ParaNdis_PrepareBugCheckData();
 
@@ -38,6 +39,7 @@ typedef BOOLEAN (*KeRegisterBugCheckReasonCallbackType) (
 typedef BOOLEAN (*KeDeregisterBugCheckReasonCallbackType) (
     __inout PKBUGCHECK_REASON_CALLBACK_RECORD CallbackRecord
     );
+#endif
 
 typedef ULONG (*vDbgPrintExType)(
     __in ULONG ComponentId,
@@ -55,6 +57,8 @@ static ULONG DummyPrintProcedure(
 {
     return 0;
 }
+
+#if NDIS_MINIPORT_MAJOR_VERSION >= 6
 static BOOLEAN KeRegisterBugCheckReasonCallbackDummyProc(
     __out PKBUGCHECK_REASON_CALLBACK_RECORD CallbackRecord,
     __in PKBUGCHECK_REASON_CALLBACK_ROUTINE CallbackRoutine,
@@ -72,11 +76,14 @@ BOOLEAN KeDeregisterBugCheckReasonCallbackDummyProc(
 {
     return FALSE;
 }
+#endif
 
 static vDbgPrintExType PrintProcedure = DummyPrintProcedure;
+#if NDIS_MINIPORT_MAJOR_VERSION >= 6
 static KeRegisterBugCheckReasonCallbackType BugCheckRegisterCallback = KeRegisterBugCheckReasonCallbackDummyProc;
 static KeDeregisterBugCheckReasonCallbackType BugCheckDeregisterCallback = KeDeregisterBugCheckReasonCallbackDummyProc;
 KBUGCHECK_REASON_CALLBACK_RECORD CallbackRecord;
+#endif
 
 #if !defined(WPP_EVENT_TRACING) || defined(WPP_USE_BYPASS)
 #if defined(DPFLTR_MASK)
@@ -119,8 +126,8 @@ DEBUGPRINTFUNC VirtioDebugPrintProc = DebugPrint;
 #else //DPFLTR_MASK
 #pragma message("DebugPrint for Win2K")
 
-DEBUGPRINTFUNC pDebugPrint = DbgPrint;
-DEBUGPRINTFUNC VirtioDebugPrintProc = DbgPrint;
+DEBUGPRINTFUNC pDebugPrint = (DEBUGPRINTFUNC)DbgPrint;
+DEBUGPRINTFUNC VirtioDebugPrintProc = (DEBUGPRINTFUNC)DbgPrint;
 
 #endif //DPFLTR_MASK
 #endif //!defined(WPP_EVENT_TRACING) || defined(WPP_USE_BYPASS)
@@ -175,6 +182,7 @@ void ParaNdis_DebugInitialize(PVOID DriverObject,PVOID RegistryPath)
     BOOLEAN res;
     WPP_INIT_TRACING(DriverObject, RegistryPath);
 
+#if NDIS_MINIPORT_MAJOR_VERSION >= 6
     NdisAllocateSpinLock(&CrashLock);
     KeInitializeCallbackRecord(&CallbackRecord);
     ParaNdis_PrepareBugCheckData();
@@ -211,6 +219,7 @@ void ParaNdis_DebugInitialize(PVOID DriverObject,PVOID RegistryPath)
         }
     }
 #endif
+#endif
 }
 
 void ParaNdis_DebugCleanup(PDRIVER_OBJECT  pDriverObject)
@@ -222,7 +231,9 @@ void ParaNdis_DebugCleanup(PDRIVER_OBJECT  pDriverObject)
         RtlCopyMemory(pDbgBreakPoint, DbgBreakPointChunk, sizeof(DbgBreakPointChunk));
     }
 #endif
+#if NDIS_MINIPORT_MAJOR_VERSION >= 6
     BugCheckDeregisterCallback(&CallbackRecord);
+#endif
     WPP_CLEANUP(pDriverObject);
 }
 
@@ -302,6 +313,7 @@ static UINT FillDataOnBugCheck()
     return n;
 }
 
+#if NDIS_MINIPORT_MAJOR_VERSION >= 6
 VOID ParaNdis_OnBugCheck(
     IN KBUGCHECK_CALLBACK_REASON Reason,
     IN PKBUGCHECK_REASON_CALLBACK_RECORD Record,
@@ -341,6 +353,7 @@ VOID ParaNdis_OnBugCheck(
         }
     }
 }
+#endif
 
 #if defined(ENABLE_HISTORY_LOG)
 void ParaNdis_DebugHistory(

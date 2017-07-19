@@ -323,8 +323,8 @@ static void ReadNicConfiguration(PARANDIS_ADAPTER *pContext, PUCHAR *ppNewMACAdd
             pContext->bBatchReceive      = pConfiguration->BatchReceive.ulValue != 0;
             pContext->bDoHardwareChecksum = pConfiguration->UseSwTxChecksum.ulValue == 0;
             pContext->bDoGuestChecksumOnReceive = pConfiguration->OffloadGuestCS.ulValue != 0;
-            pContext->bDoIPCheckTx = pConfiguration->IPPacketsCheck.ulValue & 1;
-            pContext->bDoIPCheckRx = pConfiguration->IPPacketsCheck.ulValue & 2;
+            pContext->bDoIPCheckTx = !!(pConfiguration->IPPacketsCheck.ulValue & 1);
+            pContext->bDoIPCheckRx = !!(pConfiguration->IPPacketsCheck.ulValue & 2);
             pContext->Offload.flagsValue = 0;
             // TX caps: 1 - TCP, 2 - UDP, 4 - IP, 8 - TCPv6, 16 - UDPv6
             if (pConfiguration->OffloadTxChecksum.ulValue & 1) pContext->Offload.flagsValue |= osbT4TcpChecksum | osbT4TcpOptionsChecksum;
@@ -678,11 +678,13 @@ NDIS_STATUS ParaNdis_InitializeContext(
 
     if (GetAdapterResources(pContext->MiniportHandle, pResourceList, &pContext->AdapterResources))
     {
+#if NDIS_MINIPORT_MAJOR_VERSION >= 6
         if (pContext->AdapterResources.InterruptFlags & CM_RESOURCE_INTERRUPT_MESSAGE)
         {
             DPrintf(0, ("[%s] Message interrupt assigned", __FUNCTION__));
             pContext->bUsingMSIX = TRUE;
         }
+#endif
 
         err = virtio_device_initialize(
             &pContext->IODevice,
@@ -2499,6 +2501,7 @@ VOID ParaNdis_VirtIODisableIrqSynchronized(PARANDIS_ADAPTER *pContext, ULONG int
     ParaNdis_DebugHistory(pContext, hopDPC, (PVOID)0x10, interruptSource, FALSE, 0);
 }
 
+#if NDIS_MINIPORT_MAJOR_VERSION >= 6
 /**********************************************************
 Common handler of PnP events
 Parameters:
@@ -2541,6 +2544,7 @@ VOID ParaNdis_OnPnPEvent(
     if (pContext->nPnpEventIndex > sizeof(pContext->PnpEvents)/sizeof(pContext->PnpEvents[0]))
         pContext->nPnpEventIndex = 0;
 }
+#endif
 
 static BOOLEAN SendControlMessage(
     PARANDIS_ADAPTER *pContext,
@@ -2664,7 +2668,7 @@ static VOID ParaNdis_DeviceFiltersUpdateAddresses(PARANDIS_ADAPTER *pContext)
 
 static VOID SetSingleVlanFilter(PARANDIS_ADAPTER *pContext, ULONG vlanId, BOOLEAN bOn, int levelIfOK)
 {
-    u16 val = vlanId & 0xfff;
+    u16 val = (u16)(vlanId & 0xfff);
     UCHAR cmd = bOn ? VIRTIO_NET_CTRL_VLAN_ADD : VIRTIO_NET_CTRL_VLAN_DEL;
     SendControlMessage(pContext, VIRTIO_NET_CTRL_VLAN, cmd, &val, sizeof(val), NULL, 0, levelIfOK);
 }

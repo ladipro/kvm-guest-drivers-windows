@@ -466,6 +466,7 @@ tPacketIndicationType ParaNdis_IndicateReceivedPacket(
     if (pBuffer)
     {
         UINT uTotalLength;
+#if NDIS_MINIPORT_MAJOR_VERSION >= 6
         NDIS_PACKET_8021Q_INFO qInfo;
         qInfo.Value = NULL;
         if ((pContext->ulPriorityVlanSetting && length > (ETH_PRIORITY_HEADER_OFFSET + ETH_PRIORITY_HEADER_SIZE)) ||
@@ -500,13 +501,16 @@ tPacketIndicationType ParaNdis_IndicateReceivedPacket(
                 pContext->extraStatistics.framesRxPriority++;
             }
         }
+#endif
 
         if (pBuffer)
         {
             PVOID headerBuffer = pContext->bUseMergedBuffers ? pBuffersDesc->DataInfo.Virtual:pBuffersDesc->HeaderInfo.Virtual;
             virtio_net_hdr_basic *pHeader = (virtio_net_hdr_basic *)headerBuffer;
             tChecksumCheckResult csRes;
+#if NDIS_MINIPORT_MAJOR_VERSION >= 6
             NDIS_PER_PACKET_INFO_FROM_PACKET(Packet, Ieee8021QInfo) = qInfo.Value;
+#endif
             NDIS_SET_PACKET_STATUS(Packet, STATUS_SUCCESS);
             ParaNdis_PadPacketReceived(dataBuffer, &length);
             NdisAdjustBufferLength(pBuffer, length);
@@ -1085,12 +1089,13 @@ static __inline tSendEntry * PrepareSendEntry(PARANDIS_ADAPTER *pContext, PNDIS_
     tSendEntry *pse = (tSendEntry *)ParaNdis_AllocateMemory(pContext, sizeof(tSendEntry));
     if (pse)
     {
-        NDIS_PACKET_8021Q_INFO qInfo;
         pse->packet = Packet;
         pse->flags  = 0;
         pse->PriorityDataLong = 0;
         pse->ipTransferUnit = len;
         //pse->fullTCPCheckSum = 0;
+#if NDIS_MINIPORT_MAJOR_VERSION >= 6
+        NDIS_PACKET_8021Q_INFO qInfo;
         qInfo.Value = pContext->ulPriorityVlanSetting ?
             NDIS_PER_PACKET_INFO_FROM_PACKET(Packet, Ieee8021QInfo) : NULL;
         if (!qInfo.TagHeader.VlanId) qInfo.TagHeader.VlanId = pContext->VlanId;
@@ -1110,6 +1115,7 @@ static __inline tSendEntry * PrepareSendEntry(PARANDIS_ADAPTER *pContext, PNDIS_
             SetPriorityData(pse->PriorityData, qInfo.TagHeader.UserPriority, qInfo.TagHeader.VlanId);
             DPrintf(1, ("[%s] Populated priority tag %p", __FUNCTION__, qInfo.Value));
         }
+#endif
 
         if (!errorFmt && !mss && len > pContext->MaxPacketSize.nMaxFullSizeOS)
         {
@@ -1220,6 +1226,78 @@ static __inline tSendEntry * PrepareSendEntry(PARANDIS_ADAPTER *pContext, PNDIS_
     return pse;
 }
 
+#if NDIS_MINIPORT_MAJOR_VERSION < 6
+/*
+static
+VOID
+NdisQueryPacket(
+    IN PNDIS_PACKET Packet,
+    OUT PUINT PhysicalBufferCount OPTIONAL,
+    OUT PUINT BufferCount OPTIONAL,
+    OUT PNDIS_BUFFER *FirstBuffer OPTIONAL,
+    OUT PUINT TotalPacketLength OPTIONAL)
+{
+    if (FirstBuffer)
+        *FirstBuffer = Packet->Private.Head;
+    if (TotalPacketLength || BufferCount || PhysicalBufferCount) {
+        if (!Packet->Private.ValidCounts) {
+            UINT Offset;
+            UINT PacketLength;
+            PNDIS_BUFFER NdisBuffer;
+            UINT PhysicalBufferCount = 0;
+            UINT TotalPacketLength = 0;
+            UINT Count = 0;
+
+            for (NdisBuffer = Packet->Private.Head;
+            NdisBuffer != (PNDIS_BUFFER)NULL;
+                NdisBuffer = NdisBuffer->Next) {
+                PhysicalBufferCount += NDIS_BUFFER_TO_SPAN_PAGES(NdisBuffer);
+                NdisQueryBufferOffset(NdisBuffer, &Offset, &PacketLength);
+                TotalPacketLength += PacketLength;
+                Count++;
+
+            }
+            Packet->Private.PhysicalCount = PhysicalBufferCount;
+            Packet->Private.TotalLength = TotalPacketLength;
+            Packet->Private.Count = Count;
+            Packet->Private.ValidCounts = TRUE;
+
+        }
+
+        if (PhysicalBufferCount)
+            *PhysicalBufferCount = Packet->Private.PhysicalCount;
+
+        if (BufferCount)
+            *BufferCount = Packet->Private.Count;
+
+        if (TotalPacketLength)
+            *TotalPacketLength = Packet->Private.TotalLength;
+
+    }
+}*/
+
+/*
+ * VOID
+ * NdisQueryPacketLength(
+ *   IN PNDIS_PACKET Packet,
+ *   OUT PUINT PhysicalBufferCount OPTIONAL,
+ *   OUT PUINT BufferCount OPTIONAL,
+ *   OUT PNDIS_BUFFER *FirstBuffer OPTIONAL,
+ *   OUT PUINT TotalPacketLength OPTIONAL);
+ */
+#define NdisQueryPacketLength(_Packet, \
+                              _TotalPacketLength)                   \
+{                                                                   \
+  if (!(_Packet)->Private.ValidCounts) {                            \
+    NdisQueryPacket(_Packet, NULL, NULL, NULL, _TotalPacketLength); \
+  }                                                                 \
+  else *(_TotalPacketLength) = (_Packet)->Private.TotalLength;      \
+}
+
+#define NDIS_GET_PACKET_CANCEL_ID(_P)               NDIS_PER_PACKET_INFO_FROM_PACKET(_P, PacketCancelId)
+
+#endif
+
 /**********************************************************
 NDIS sends us packets
     Queues packets internally and calls the procedure to process the queue
@@ -1281,6 +1359,7 @@ VOID ParaNdis5_SendPackets(IN NDIS_HANDLE MiniportAdapterContext,
     ParaNdis_ProcessTx(pContext, FALSE, FALSE);
 }
 
+#if NDIS_MINIPORT_MAJOR_VERSION >= 6
 /**********************************************************
 NDIS procedure, not easy to test
 NDIS asks us to cancel packets with specified CancelID
@@ -1327,6 +1406,7 @@ VOID ParaNdis5_CancelSendPackets(IN NDIS_HANDLE MiniportAdapterContext,IN PVOID 
     }
     DEBUG_EXIT_STATUS(0, n);
 }
+#endif
 
 /**********************************************************
 Request to pause or resume data transmit

@@ -14,7 +14,9 @@
 #ifdef WPP_EVENT_TRACING
 #include "sw-offload.tmh"
 #endif
+#if NDIS_MINIPORT_MAJOR_VERSION >= 6
 #include <sal.h>
+#endif
 
 // till IP header size is 8 bit
 #define MAX_SUPPORTED_IPV6_HEADERS  (256 - 4)

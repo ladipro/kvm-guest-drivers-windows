@@ -14,7 +14,9 @@
 #ifdef WPP_EVENT_TRACING
 #include "ParaNdis-Oid.tmh"
 #endif
+#if NDIS_MINIPORT_MAJOR_VERSION >= 6
 #include <sal.h>
+#endif
 
 static const char VendorName[] = "Red Hat";
 
@@ -282,8 +284,10 @@ NDIS_STATUS ParaNdis_OidQueryCommon(PARANDIS_ADAPTER *pContext, tOidDesc *pOid)
                 NDIS_MAC_OPTION_NO_LOOPBACK;
             if (IsPrioritySupported(pContext))
                 options |= NDIS_MAC_OPTION_8021P_PRIORITY;
+#if NDIS_MINIPORT_MAJOR_VERSION >= 6
             if (IsVlanSupported(pContext))
                 options |= NDIS_MAC_OPTION_8021Q_VLAN;
+#endif
             SETINFO(ul, options);
         }
         break;
@@ -401,11 +405,13 @@ NDIS_STATUS ParaNdis_OidQueryCommon(PARANDIS_ADAPTER *pContext, tOidDesc *pOid)
     case OID_802_3_MAC_OPTIONS:
         SETINFO(ul, 0);
         break;
+#if NDIS_MINIPORT_MAJOR_VERSION >= 6
     case OID_GEN_VLAN_ID:
         SETINFO(ul, pContext->VlanId);
         if (!IsVlanSupported(pContext))
             status = NDIS_STATUS_NOT_SUPPORTED;
         break;
+#endif
     case OID_GEN_CURRENT_LOOKAHEAD:
         if (!pContext->DummyLookAhead) pContext->DummyLookAhead = pContext->MaxPacketSize.nMaxFullSizeOS;
         pInfo  = &pContext->DummyLookAhead;
@@ -489,7 +495,9 @@ const char *ParaNdis_OidName(NDIS_OID oid)
     MAKECASE(OID_GEN_INIT_TIME_MS)
     MAKECASE(OID_GEN_RESET_COUNTS)
     MAKECASE(OID_GEN_MEDIA_SENSE_COUNTS)
+#if NDIS_MINIPORT_MAJOR_VERSION >= 6
     MAKECASE(OID_GEN_VLAN_ID)
+#endif
     MAKECASE(OID_PNP_CAPABILITIES)
     MAKECASE(OID_PNP_SET_POWER)
     MAKECASE(OID_PNP_QUERY_POWER)
@@ -511,6 +519,7 @@ const char *ParaNdis_OidName(NDIS_OID oid)
     MAKECASE(OID_802_3_XMIT_HEARTBEAT_FAILURE)
     MAKECASE(OID_802_3_XMIT_TIMES_CRS_LOST)
     MAKECASE(OID_802_3_XMIT_LATE_COLLISIONS)
+#if NDIS_MINIPORT_MAJOR_VERSION >= 6
     MAKECASE(OID_GEN_MACHINE_NAME)
     MAKECASE(OID_TCP_TASK_OFFLOAD)
 #if NDIS_SUPPORT_NDIS6
@@ -521,6 +530,7 @@ const char *ParaNdis_OidName(NDIS_OID oid)
     MAKECASE(OID_OFFLOAD_ENCAPSULATION)
     MAKECASE(OID_IP4_OFFLOAD_STATS)
     MAKECASE(OID_IP6_OFFLOAD_STATS)
+#endif
 #if NDIS_SUPPORT_NDIS61
 MAKECASE(OID_TCP_TASK_IPSEC_OFFLOAD_V2_ADD_SA)
 MAKECASE(OID_TCP_TASK_IPSEC_OFFLOAD_V2_DELETE_SA)
