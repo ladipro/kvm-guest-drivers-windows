@@ -26,8 +26,10 @@ struct virtqueue {
     struct vring vring;
     unsigned int index;
     unsigned int num_free;
+    unsigned int num_added;
     u16 first_free;
     u16 last_used;
+    bool event_suppression_enabled;
     void *notification_addr;
     void (*notification_cb)(struct virtqueue *vq);
     void *opaque[];
