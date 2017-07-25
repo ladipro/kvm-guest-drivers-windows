@@ -21,6 +21,8 @@ struct VirtIOBufferDescriptor {
  * element in the queue, otherwise a buffer will need one element per
  * sg element.
  */
+#pragma warning (push)
+#pragma warning (disable:4200)
 struct virtqueue {
     VirtIODevice *vdev;
     struct vring vring;
@@ -38,6 +40,7 @@ struct virtqueue {
     void (*notification_cb)(struct virtqueue *vq);
     void *opaque[];
 };
+#pragma warning (pop)
 
 int virtqueue_add_buf(struct virtqueue *vq,
                       struct scatterlist sg[],

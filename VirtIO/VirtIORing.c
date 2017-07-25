@@ -13,47 +13,21 @@ static inline u16 get_free_desc(struct virtqueue *vq)
     return idx;
 }
 
-static inline void put_free_desc(struct virtqueue *vq, u16 idx)
+static inline u16 put_free_desc(struct virtqueue *vq, u16 idx)
 {
+    u16 next = vq->vring.desc[idx].next;
     vq->vring.desc[idx].flags = VIRTQ_DESC_F_NEXT;
     vq->vring.desc[idx].next = vq->first_free;
 
+    vq->opaque[idx] = NULL;
+
     vq->first_free = idx;
+    return next;
 }
 
-static int virtqueue_add_buf_indirect(
+int virtqueue_add_buf(
     struct virtqueue *vq,
     struct scatterlist sg[],
-    unsigned int out,
-    unsigned int in,
-    PVOID va,
-    PHYSICAL_ADDRESS pa)
-{
-    struct vring_desc *desc = (struct vring_desc *)va;
-    unsigned head;
-    unsigned int i;
-
-    for (i = 0; i < out + in; i++) {
-        desc[i].flags = (i < out ? 0 : VIRTQ_DESC_F_WRITE);
-        desc[i].flags |= VIRTQ_DESC_F_NEXT;
-        desc[i].addr = sg->physAddr.QuadPart;
-        desc[i].len = sg->length;
-        desc[i].next = (u16)i + 1;
-        sg++;
-    }
-    desc[i - 1].flags &= ~VIRTQ_DESC_F_NEXT;
-
-    /* Use a single buffer which doesn't continue */
-    head = get_free_desc(vq);
-    vq->vring.desc[head].flags = VIRTQ_DESC_F_INDIRECT;
-    vq->vring.desc[head].addr = pa.QuadPart;
-    vq->vring.desc[head].len = i * sizeof(struct vring_desc);
-
-    return head;
-}
-
-int virtqueue_add_buf(struct virtqueue *vq,
-struct scatterlist sg[],
     unsigned int out,
     unsigned int in,
     void *opaque,
@@ -62,48 +36,70 @@ struct scatterlist sg[],
 {
     struct vring *vring = &vq->vring;
     unsigned int i;
-    SSIZE_T idx = -1;
+    u16 idx;
 
     DbgPrint("virtqueue_add_buf: entry\n");
 
     if (va_indirect && (out + in) > 1 && vq->num_free > 0) {
-        PHYSICAL_ADDRESS pa;
-        pa.QuadPart = phys_indirect;
-        idx = virtqueue_add_buf_indirect(vq, sg, out, in, va_indirect, pa);
+        /* Use one indirect descriptor */
+        struct vring_desc *desc = (struct vring_desc *)va_indirect;
+
+        for (i = 0; i < out + in; i++) {
+            desc[i].flags = (i < out ? 0 : VIRTQ_DESC_F_WRITE);
+            desc[i].flags |= VIRTQ_DESC_F_NEXT;
+            desc[i].addr = sg->physAddr.QuadPart;
+            desc[i].len = sg->length;
+            desc[i].next = (u16)i + 1;
+            sg++;
+        }
+        desc[i - 1].flags &= ~VIRTQ_DESC_F_NEXT;
+
+        idx = get_free_desc(vq);
+        vq->vring.desc[idx].flags = VIRTQ_DESC_F_INDIRECT;
+        vq->vring.desc[idx].addr = phys_indirect;
+        vq->vring.desc[idx].len = i * sizeof(struct vring_desc);
+
+        vq->opaque[idx] = opaque;
         vq->num_free--;
     } else {
+        u16 last_idx;
+
+        /* Use out + in regular descriptors */
         if (out + in > vq->num_free) {
             DbgPrint("virtqueue_add_buf: error\n");
             return -ENOSPC;
         }
 
-        // fill out vring descriptors
-        SSIZE_T prev_desc_idx = -1;
-        for (i = 0; i < out + in; i++) {
-            SSIZE_T desc_idx = get_free_desc(vq);
-            ASSERT(desc_idx >= 0);
+        /* First descriptor */
+        idx = last_idx = get_free_desc(vq);
+        vq->opaque[idx] = opaque;
 
-            if (prev_desc_idx == -1) {
-                vq->opaque[desc_idx] = opaque;
-            } else {
-                vring->desc[prev_desc_idx].flags |= VIRTQ_DESC_F_NEXT;
-                vring->desc[prev_desc_idx].next = (u16)desc_idx;
-            }
-            prev_desc_idx = desc_idx;
-
-            if (idx < 0) {
-                idx = desc_idx;
-            }
-            vring->desc[desc_idx].addr = sg[i].physAddr.QuadPart;
-            vring->desc[desc_idx].len = sg[i].length;
-            vring->desc[desc_idx].flags = (i < out ? 0 : VIRTQ_DESC_F_WRITE);
-            vring->desc[desc_idx].next = 0;
-
-            vq->num_free--;
+        vring->desc[idx].addr = sg[0].physAddr.QuadPart;
+        vring->desc[idx].len = sg[0].length;
+        vring->desc[idx].flags = VIRTQ_DESC_F_NEXT;
+        if (out == 0) {
+            vring->desc[idx].flags |= VIRTQ_DESC_F_WRITE;
         }
+        vring->desc[idx].next = vq->first_free;
+
+        /* The rest of descriptors */
+        for (i = 1; i < out + in; i++) {
+            last_idx = get_free_desc(vq);
+
+            vring->desc[last_idx].addr = sg[i].physAddr.QuadPart;
+            vring->desc[last_idx].len = sg[i].length;
+            vring->desc[last_idx].flags = VIRTQ_DESC_F_NEXT;
+            if (i >= out) {
+                vring->desc[last_idx].flags |= VIRTQ_DESC_F_WRITE;
+            }
+            vring->desc[last_idx].next = vq->first_free;
+        }
+        vring->desc[last_idx].flags &= ~VIRTQ_DESC_F_NEXT;
+        vq->num_free -= (out + in);
     }
 
-    vring->avail->ring[vring->avail->idx % vring->num] = (u16)idx;
+    /* Write the first descriptor into the available ring */
+    vring->avail->ring[vq->master_vring_avail.idx & (vring->num - 1)] = idx;
     MemoryBarrier();
     vring->avail->idx = ++vq->master_vring_avail.idx;
     vq->num_added++;
@@ -116,35 +112,33 @@ struct scatterlist sg[],
 void *virtqueue_get_buf(struct virtqueue *vq, unsigned int *len)
 {
     void *opaque;
-    int idx;
+    u16 idx;
 
     DbgPrint("virtqueue_get_buf: entry\n");
 
     if (vq->last_used == (int)vq->vring.used->idx) {
-        // no buffers in the used ring
+        /* No descriptor index in the used ring */
         DbgPrint("### no buffers in the used ring\n");
         return NULL;
     }
 
     KeMemoryBarrier();
 
-    idx = vq->last_used % vq->vring.num;
+    idx = vq->last_used & (vq->vring.num - 1);
     *len = vq->vring.used->ring[idx].len;
 
-    // clear out the descriptors
-    idx = vq->vring.used->ring[idx].id;
+    /* Get the first used descriptor */
+    idx = (u16)vq->vring.used->ring[idx].id;
     opaque = vq->opaque[idx];
-    do {
-        u16 curr_idx = (u16)idx;
-        vq->opaque[idx] = NULL;
-        if (vq->vring.desc[idx].flags & VIRTQ_DESC_F_NEXT) {
-            idx = vq->vring.desc[idx].next;
-        } else {
-            idx = -1;
-        }
-        put_free_desc(vq, curr_idx);
+
+    /* Put all descriptors back to the free list */
+    while (vq->vring.desc[idx].flags & VIRTQ_DESC_F_NEXT)
+    {
+        idx = put_free_desc(vq, idx);
         vq->num_free++;
-    } while (idx >= 0);
+    }
+    put_free_desc(vq, idx);
+    vq->num_free++;
 
     vq->last_used++;
     if (virtqueue_is_interrupt_enabled(vq)) {
@@ -165,7 +159,6 @@ BOOLEAN virtqueue_has_buf(struct virtqueue *vq)
 bool virtqueue_kick_prepare(struct virtqueue *vq)
 {
     KeMemoryBarrier();
-
     u16 old = (u16)(vq->master_vring_avail.idx - vq->num_added);
     u16 new = vq->master_vring_avail.idx;
     vq->num_added = 0;
@@ -205,11 +198,11 @@ bool virtqueue_enable_cb_delayed(struct virtqueue *vq)
         vq->vring.avail->flags &= ~VIRTQ_AVAIL_F_NO_INTERRUPT;
     }
 
-    /* TODO: tune this threshold */
+    /* Note that this is an arbitrary threshold */
     bufs = (u16)(vq->master_vring_avail.idx - vq->last_used) * 3 / 4;
     vring_used_event(&vq->vring) = vq->last_used + bufs;
     MemoryBarrier();
-    return ((u16)(vq->vring.used->idx - vq->last_used) <= bufs);
+    return ((vq->vring.used->idx - vq->last_used) <= bufs);
 }
 
 void virtqueue_disable_cb(struct virtqueue *vq)
@@ -248,7 +241,7 @@ struct virtqueue *vring_new_virtqueue(unsigned int index,
     vq->notification_cb = notify;
     vq->index = index;
 
-    // build a linked list of free descriptors
+    /* Build a linked list of free descriptors */
     vq->num_free = num;
     vq->first_free = 0;
     for (i = 0; i < num - 1; i++) {
@@ -277,28 +270,21 @@ void virtqueue_shutdown(struct virtqueue *vq)
 
 void *virtqueue_detach_unused_buf(struct virtqueue *vq)
 {
-    int idx;
+    u16 idx;
     void *opaque = NULL;
 
-    for (idx = 0; idx < (int)vq->vring.num; idx++) {
+    for (idx = 0; idx < (u16)vq->vring.num; idx++) {
         opaque = vq->opaque[idx];
         if (opaque) {
+            while (vq->vring.desc[idx].flags & VIRTQ_DESC_F_NEXT) {
+                idx = put_free_desc(vq, idx);
+                vq->num_free++;
+            }
+            put_free_desc(vq, idx);
+            vq->num_free++;
+            vq->vring.avail->idx = --vq->master_vring_avail.idx;
             break;
         }
-    }
-    if (opaque) {
-        do {
-            u16 curr_idx = (u16)idx;
-            vq->opaque[idx] = NULL;
-            if (vq->vring.desc[idx].flags & VIRTQ_DESC_F_NEXT) {
-                idx = vq->vring.desc[idx].next;
-            } else {
-                idx = -1;
-            }
-            put_free_desc(vq, curr_idx);
-            vq->vring.avail->idx = --vq->master_vring_avail.idx;
-            vq->num_free++;
-        } while (idx >= 0);
     }
     return opaque;
 }
