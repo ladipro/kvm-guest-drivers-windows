@@ -24,6 +24,10 @@ struct VirtIOBufferDescriptor {
 struct virtqueue {
     VirtIODevice *vdev;
     struct vring vring;
+    struct {
+        u16 flags;
+        u16 idx;
+    } master_vring_avail;
     unsigned int index;
     unsigned int num_free;
     unsigned int num_added;

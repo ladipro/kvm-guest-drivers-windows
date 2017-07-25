@@ -105,7 +105,7 @@ struct scatterlist sg[],
 
     vring->avail->ring[vring->avail->idx % vring->num] = (u16)idx;
     MemoryBarrier();
-    vring->avail->idx = (vring->avail->idx + 1);
+    vring->avail->idx = ++vq->master_vring_avail.idx;
     vq->num_added++;
 
     DbgPrint("virtqueue_add_buf: exit\n");
@@ -147,7 +147,7 @@ void *virtqueue_get_buf(struct virtqueue *vq, unsigned int *len)
     } while (idx >= 0);
 
     vq->last_used++;
-    if (!(vq->vring.avail->flags & VIRTQ_AVAIL_F_NO_INTERRUPT)) {
+    if (virtqueue_is_interrupt_enabled(vq)) {
         vring_used_event(&vq->vring) = vq->last_used;
         MemoryBarrier();
     }
@@ -162,21 +162,12 @@ BOOLEAN virtqueue_has_buf(struct virtqueue *vq)
     return (vq->last_used != vq->vring.used->idx);
 }
 
-/*
-static int vring_add_indirect(struct vring_virtqueue *vq,
-struct scatterlist sg[],
-unsigned int out,
-unsigned int in,
-PVOID va,
-ULONGLONG phys)
-*/
-
 bool virtqueue_kick_prepare(struct virtqueue *vq)
 {
     KeMemoryBarrier();
 
-    u16 old = (u16)(vq->vring.avail->idx - vq->num_added);
-    u16 new = vq->vring.avail->idx;
+    u16 old = (u16)(vq->master_vring_avail.idx - vq->num_added);
+    u16 new = vq->master_vring_avail.idx;
     vq->num_added = 0;
 
     if (vq->event_suppression_enabled) {
@@ -193,13 +184,12 @@ void virtqueue_kick_always(struct virtqueue *vq)
     virtqueue_notify(vq);
 }
 
-//static void detach_buf(struct vring_virtqueue *vq, unsigned int head)
-//static inline bool more_used(const struct vring_virtqueue *vq)
-
-
 bool virtqueue_enable_cb(struct virtqueue *vq)
 {
-    vq->vring.avail->flags &= ~VIRTQ_AVAIL_F_NO_INTERRUPT;
+    if (!virtqueue_is_interrupt_enabled(vq)) {
+        vq->master_vring_avail.flags &= ~VIRTQ_AVAIL_F_NO_INTERRUPT;
+        vq->vring.avail->flags &= ~VIRTQ_AVAIL_F_NO_INTERRUPT;
+    }
 
     vring_used_event(&vq->vring) = vq->last_used;
     MemoryBarrier();
@@ -210,10 +200,13 @@ bool virtqueue_enable_cb_delayed(struct virtqueue *vq)
 {
     u16 bufs;
 
-    vq->vring.avail->flags &= ~VIRTQ_AVAIL_F_NO_INTERRUPT;
+    if (!virtqueue_is_interrupt_enabled(vq)) {
+        vq->master_vring_avail.flags &= ~VIRTQ_AVAIL_F_NO_INTERRUPT;
+        vq->vring.avail->flags &= ~VIRTQ_AVAIL_F_NO_INTERRUPT;
+    }
 
     /* TODO: tune this threshold */
-    bufs = (u16)(vq->vring.avail->idx - vq->last_used) * 3 / 4;
+    bufs = (u16)(vq->master_vring_avail.idx - vq->last_used) * 3 / 4;
     vring_used_event(&vq->vring) = vq->last_used + bufs;
     MemoryBarrier();
     return ((u16)(vq->vring.used->idx - vq->last_used) <= bufs);
@@ -221,12 +214,15 @@ bool virtqueue_enable_cb_delayed(struct virtqueue *vq)
 
 void virtqueue_disable_cb(struct virtqueue *vq)
 {
-    vq->vring.avail->flags |= VIRTQ_AVAIL_F_NO_INTERRUPT;
+    if (virtqueue_is_interrupt_enabled(vq)) {
+        vq->master_vring_avail.flags |= VIRTQ_AVAIL_F_NO_INTERRUPT;
+        vq->vring.avail->flags |= VIRTQ_AVAIL_F_NO_INTERRUPT;
+    }
 }
 
 BOOLEAN virtqueue_is_interrupt_enabled(struct virtqueue *vq)
 {
-    return !!(vq->vring.avail->flags & VIRTQ_AVAIL_F_NO_INTERRUPT);
+    return !(vq->master_vring_avail.flags & VIRTQ_AVAIL_F_NO_INTERRUPT);
 }
 
 struct virtqueue *vring_new_virtqueue(unsigned int index,
@@ -251,10 +247,6 @@ struct virtqueue *vring_new_virtqueue(unsigned int index,
     vq->vdev = vdev;
     vq->notification_cb = notify;
     vq->index = index;
-    vq->last_used = 0;
-    vq->num_added = 0;
-    //vq->avail_flags_shadow = 0;
-    //vq->avail_idx_shadow = 0;
 
     // build a linked list of free descriptors
     vq->num_free = num;
@@ -304,7 +296,7 @@ void *virtqueue_detach_unused_buf(struct virtqueue *vq)
                 idx = -1;
             }
             put_free_desc(vq, curr_idx);
-            vq->vring.avail->idx--;
+            vq->vring.avail->idx = --vq->master_vring_avail.idx;
             vq->num_free++;
         } while (idx >= 0);
     }
