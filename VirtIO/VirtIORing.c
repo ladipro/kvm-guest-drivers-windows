@@ -4,23 +4,28 @@
 #include "kdebugprint.h"
 #include "virtio_ring.h"
 
-// TODO: This will be optimized of course
-static int get_free_desc(struct vring *vring)
+static inline u16 get_free_desc(struct virtqueue *vq)
 {
-    unsigned int i;
-    for (i = 0; i < vring->num; i++) {
-        if (vring->desc[i].addr == 0) {
-            return i;
-        }
-    }
-    return -1;
+    u16 idx = vq->first_free;
+
+    ASSERT(vq->vring.desc[idx].flags & VIRTQ_DESC_F_NEXT);
+    vq->first_free = vq->vring.desc[idx].next;
+    return idx;
+}
+
+static inline void put_free_desc(struct virtqueue *vq, u16 idx)
+{
+    vq->vring.desc[idx].flags = VIRTQ_DESC_F_NEXT;
+    vq->vring.desc[idx].next = vq->first_free;
+
+    vq->first_free = idx;
 }
 
 int virtqueue_add_buf(struct virtqueue *vq,
 struct scatterlist sg[],
     unsigned int out,
     unsigned int in,
-    void *data,
+    void *opaque,
     void *va_indirect,
     ULONGLONG phys_indirect)
 {
@@ -38,12 +43,12 @@ struct scatterlist sg[],
     // fill out vring descriptors
     SSIZE_T prev_desc_idx = -1;
     for (i = 0; i < out + in; i++) {
-        SSIZE_T desc_idx = get_free_desc(vring);
+        SSIZE_T desc_idx = get_free_desc(vq);
         ASSERT(desc_idx >= 0);
 
-        vq->data[desc_idx] = data;
-
-        if (prev_desc_idx >= 0) {
+        if (prev_desc_idx == -1) {
+            vq->opaque[desc_idx] = opaque;
+        } else {
             vring->desc[prev_desc_idx].flags |= VIRTQ_DESC_F_NEXT;
             vring->desc[prev_desc_idx].next = (u16)desc_idx;
         }
@@ -62,10 +67,7 @@ struct scatterlist sg[],
 
     vring->avail->ring[vring->avail->idx % vring->num] = (u16)idx;
     MemoryBarrier();
-    DbgPrint("$$$ avail idx pa %I64x\n",
-        vq->vdev->system->mem_get_physical_address(vq->vdev, &vring->avail->idx));
-    vring->avail->idx = (vring->avail->idx + 1);// % vring->num;
-    DbgPrint("$$$ idx %u\n", vring->avail->idx);
+    vring->avail->idx = (vring->avail->idx + 1);
 
     DbgPrint("virtqueue_add_buf: exit\n");
 
@@ -74,7 +76,7 @@ struct scatterlist sg[],
 
 void *virtqueue_get_buf(struct virtqueue *vq, unsigned int *len)
 {
-    void *data;
+    void *opaque;
     int idx;
 
     DbgPrint("virtqueue_get_buf: entry\n");
@@ -92,23 +94,23 @@ void *virtqueue_get_buf(struct virtqueue *vq, unsigned int *len)
 
     // clear out the descriptors
     idx = vq->vring.used->ring[idx].id;
-    data = vq->data[idx];
+    opaque = vq->opaque[idx];
     do {
-        vq->vring.desc[idx].addr = 0;
-        vq->data[idx] = NULL;
+        u16 curr_idx = (u16)idx;
+        vq->opaque[idx] = NULL;
         if (vq->vring.desc[idx].flags & VIRTQ_DESC_F_NEXT) {
             idx = vq->vring.desc[idx].next;
         } else {
             idx = -1;
         }
-
+        put_free_desc(vq, curr_idx);
         vq->num_free++;
     } while (idx >= 0);
 
     vq->last_used = vq->last_used + 1;
-    DbgPrint("virtqueue_get_buf returning %p\n", data);
+    DbgPrint("virtqueue_get_buf returning %p\n", opaque);
 
-    return data;
+    return opaque;
 }
 
 BOOLEAN virtqueue_has_buf(struct virtqueue *vq)
@@ -181,7 +183,7 @@ struct virtqueue *vring_new_virtqueue(unsigned int index,
     }
 
     unsigned short i = (unsigned short)num;
-    memset(vq, 0, sizeof(*vq) + num * sizeof(void *));
+    RtlZeroMemory(vq, sizeof(*vq) + num * sizeof(void *));
 
     vring_init(&vq->vring, num, pages, vring_align);
     vq->vdev = vdev;
@@ -192,16 +194,13 @@ struct virtqueue *vring_new_virtqueue(unsigned int index,
     //vq->avail_idx_shadow = 0;
     //vq->num_added = 0;
 
-    /* Put everything in free lists. */
+    // build a linked list of free descriptors
     vq->num_free = num;
-/*
-    vq//->free_head = 0;
+    vq->first_free = 0;
     for (i = 0; i < num - 1; i++) {
+        vq->vring.desc[i].flags = VIRTQ_DESC_F_NEXT;
         vq->vring.desc[i].next = i + 1;
-        vq->data[i] = NULL;
     }
-    vq->data[i] = NULL;
-*/
     return vq;
 }
 
@@ -211,7 +210,7 @@ void virtqueue_shutdown(struct virtqueue *vq)
     void *pages = vq->vring.desc;
     unsigned int vring_align = vq->vdev->addr ? PAGE_SIZE : SMP_CACHE_BYTES;
 
-    memset(pages, 0, vring_size(num, vring_align));
+    RtlZeroMemory(pages, vring_size(num, vring_align));
     (void)vring_new_virtqueue(
         vq->index,
         vq->vring.num,
@@ -224,17 +223,29 @@ void virtqueue_shutdown(struct virtqueue *vq)
 
 void *virtqueue_detach_unused_buf(struct virtqueue *vq)
 {
-    unsigned int i;
-    void *data = NULL;
+    int idx;
+    void *opaque = NULL;
 
-    for (i = 0; i < vq->vring.num; i++) {
-        data = vq->data[i];
-        if (data) {
-            vq->data[i] = NULL;
+    for (idx = 0; idx < (int)vq->vring.num; idx++) {
+        opaque = vq->opaque[idx];
+        if (opaque) {
             break;
         }
     }
-    return NULL;
+    if (opaque) {
+        do {
+            u16 curr_idx = (u16)idx;
+            vq->opaque[idx] = NULL;
+            if (vq->vring.desc[idx].flags & VIRTQ_DESC_F_NEXT) {
+                idx = vq->vring.desc[idx].next;
+            } else {
+                idx = -1;
+            }
+            put_free_desc(vq, curr_idx);
+            vq->num_free++;
+        } while (idx >= 0);
+    }
+    return opaque;
 }
 
 unsigned int vring_control_block_size()
