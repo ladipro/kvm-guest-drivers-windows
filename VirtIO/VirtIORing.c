@@ -21,6 +21,37 @@ static inline void put_free_desc(struct virtqueue *vq, u16 idx)
     vq->first_free = idx;
 }
 
+static int virtqueue_add_buf_indirect(
+    struct virtqueue *vq,
+    struct scatterlist sg[],
+    unsigned int out,
+    unsigned int in,
+    PVOID va,
+    PHYSICAL_ADDRESS pa)
+{
+    struct vring_desc *desc = (struct vring_desc *)va;
+    unsigned head;
+    unsigned int i;
+
+    for (i = 0; i < out + in; i++) {
+        desc[i].flags = (i < out ? 0 : VIRTQ_DESC_F_WRITE);
+        desc[i].flags |= VIRTQ_DESC_F_NEXT;
+        desc[i].addr = sg->physAddr.QuadPart;
+        desc[i].len = sg->length;
+        desc[i].next = (u16)i + 1;
+        sg++;
+    }
+    desc[i - 1].flags &= ~VIRTQ_DESC_F_NEXT;
+
+    /* Use a single buffer which doesn't continue */
+    head = get_free_desc(vq);
+    vq->vring.desc[head].flags = VIRTQ_DESC_F_INDIRECT;
+    vq->vring.desc[head].addr = pa.QuadPart;
+    vq->vring.desc[head].len = i * sizeof(struct vring_desc);
+
+    return head;
+}
+
 int virtqueue_add_buf(struct virtqueue *vq,
 struct scatterlist sg[],
     unsigned int out,
@@ -35,34 +66,41 @@ struct scatterlist sg[],
 
     DbgPrint("virtqueue_add_buf: entry\n");
 
-    if (out + in > vq->num_free) {
-        DbgPrint("virtqueue_add_buf: error\n");
-        return -ENOSPC;
-    }
-
-    // fill out vring descriptors
-    SSIZE_T prev_desc_idx = -1;
-    for (i = 0; i < out + in; i++) {
-        SSIZE_T desc_idx = get_free_desc(vq);
-        ASSERT(desc_idx >= 0);
-
-        if (prev_desc_idx == -1) {
-            vq->opaque[desc_idx] = opaque;
-        } else {
-            vring->desc[prev_desc_idx].flags |= VIRTQ_DESC_F_NEXT;
-            vring->desc[prev_desc_idx].next = (u16)desc_idx;
-        }
-        prev_desc_idx = desc_idx;
-
-        if (idx < 0) {
-            idx = desc_idx;
-        }
-        vring->desc[desc_idx].addr = sg[i].physAddr.QuadPart;
-        vring->desc[desc_idx].len = sg[i].length;
-        vring->desc[desc_idx].flags = (i < out ? 0 : VIRTQ_DESC_F_WRITE);
-        vring->desc[desc_idx].next = 0;
-
+    if (va_indirect && (out + in) > 1 && vq->num_free > 0) {
+        PHYSICAL_ADDRESS pa;
+        pa.QuadPart = phys_indirect;
+        idx = virtqueue_add_buf_indirect(vq, sg, out, in, va_indirect, pa);
         vq->num_free--;
+    } else {
+        if (out + in > vq->num_free) {
+            DbgPrint("virtqueue_add_buf: error\n");
+            return -ENOSPC;
+        }
+
+        // fill out vring descriptors
+        SSIZE_T prev_desc_idx = -1;
+        for (i = 0; i < out + in; i++) {
+            SSIZE_T desc_idx = get_free_desc(vq);
+            ASSERT(desc_idx >= 0);
+
+            if (prev_desc_idx == -1) {
+                vq->opaque[desc_idx] = opaque;
+            } else {
+                vring->desc[prev_desc_idx].flags |= VIRTQ_DESC_F_NEXT;
+                vring->desc[prev_desc_idx].next = (u16)desc_idx;
+            }
+            prev_desc_idx = desc_idx;
+
+            if (idx < 0) {
+                idx = desc_idx;
+            }
+            vring->desc[desc_idx].addr = sg[i].physAddr.QuadPart;
+            vring->desc[desc_idx].len = sg[i].length;
+            vring->desc[desc_idx].flags = (i < out ? 0 : VIRTQ_DESC_F_WRITE);
+            vring->desc[desc_idx].next = 0;
+
+            vq->num_free--;
+        }
     }
 
     vring->avail->ring[vring->avail->idx % vring->num] = (u16)idx;
