@@ -10,17 +10,7 @@ struct VirtIOBufferDescriptor {
     ULONG length;
 };
 
-/**
- * virtqueue - a queue to register buffers for sending or receiving.
- * @vdev: the virtio device this queue was created for.
- * @notification_addr: a pointer for the virtqueue implementation to use.
- * @index: the zero-based ordinal number for this queue.
- * @num_free: number of elements we expect to be able to fit.
- *
- * A note on @num_free: with indirect buffers, each buffer needs one
- * element in the queue, otherwise a buffer will need one element per
- * sg element.
- */
+/* Represents one virtqueue; only data pointed to by the vring structure is exposed to the host */
 #pragma warning (push)
 #pragma warning (disable:4200)
 struct virtqueue {
@@ -31,9 +21,9 @@ struct virtqueue {
         u16 idx;
     } master_vring_avail;
     unsigned int index;
-    unsigned int num_free;
-    unsigned int num_added;
-    u16 first_free;
+    unsigned int num_unused;
+    unsigned int num_added_since_kick;
+    u16 first_unused;
     u16 last_used;
     bool event_suppression_enabled;
     void *notification_addr;
