@@ -60,6 +60,10 @@
 #error "Something is wrong with NDIS environment"
 #endif
 
+#if !defined(PARANDIS_MAJOR_DRIVER_VERSION) || !defined(PARANDIS_MINOR_DRIVER_VERSION)
+#error "Something is wrong with our versioning"
+#endif
+
 //define to see when the status register is unreadable(see ParaNdis_ResetVirtIONetDevice)
 //#define VIRTIO_RESET_VERIFY
 
