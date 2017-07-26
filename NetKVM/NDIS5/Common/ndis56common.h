@@ -15,6 +15,9 @@
 
 //#define PARANDIS_TEST_TX_KICK_ALWAYS
 
+#define min(_a, _b) (((_a) < (_b)) ? (_a) : (_b))
+
+
 #if defined(OFFLOAD_UNIT_TEST)
 #include <windows.h>
 #include <stdio.h>
