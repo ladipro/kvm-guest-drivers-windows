@@ -77,6 +77,6 @@ goto :continue
 call :BuildProject "Win10 Release|x64" buildfre_win10_amd64.log
 goto :continue
 
-:BuildProject
-call ..\tools\callVisualStudio.bat 14 VirtioLib.vcxproj /Rebuild "%~1" /Out %2
+:BuildWin8
+call ..\tools\callVisualStudio.bat 12 VirtioLib-win8.vcxproj /Rebuild "%~1" /Out %2
 goto :eof
