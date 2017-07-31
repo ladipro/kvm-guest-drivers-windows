@@ -32,27 +32,35 @@
 #include "kdebugprint.h"
 #include "virtio_ring.h"
 
+#define DESC_INDEX(num, i) ((i) & ((num) - 1))
+
 /* Returns the index of the first unused descriptor */
 static inline u16 get_unused_desc(struct virtqueue *vq)
 {
     u16 idx = vq->first_unused;
-
     ASSERT(vq->vring.desc[idx].flags & VIRTQ_DESC_F_NEXT);
+
     vq->first_unused = vq->vring.desc[idx].next;
+    vq->num_unused--;
     return idx;
 }
 
-/* Marks the descriptor at index idx as unused */
-static inline u16 put_unused_desc(struct virtqueue *vq, u16 idx)
+/* Marks the descriptor chain starting at index idx as unused */
+static inline void put_unused_desc_chain(struct virtqueue *vq, u16 idx)
 {
-    u16 next = vq->vring.desc[idx].next;
-    vq->vring.desc[idx].flags = VIRTQ_DESC_F_NEXT;
-    vq->vring.desc[idx].next = vq->first_unused;
+    u16 start = idx;
 
     vq->opaque[idx] = NULL;
+    while (vq->vring.desc[idx].flags & VIRTQ_DESC_F_NEXT) {
+        idx = vq->vring.desc[idx].next;
+        vq->num_unused++;
+    }
 
-    vq->first_unused = idx;
-    return next;
+    vq->vring.desc[idx].flags = VIRTQ_DESC_F_NEXT;
+    vq->vring.desc[idx].next = vq->first_unused;
+    vq->num_unused++;
+
+    vq->first_unused = start;
 }
 
 /* Adds a buffer to a virtqueue, returns 0 on success, negative number on error */
@@ -88,7 +96,6 @@ int virtqueue_add_buf(
         vq->vring.desc[idx].len = i * sizeof(struct vring_desc);
 
         vq->opaque[idx] = opaque;
-        vq->num_unused--;
     } else {
         u16 last_idx;
 
@@ -122,11 +129,10 @@ int virtqueue_add_buf(
             vring->desc[last_idx].next = vq->first_unused;
         }
         vring->desc[last_idx].flags &= ~VIRTQ_DESC_F_NEXT;
-        vq->num_unused -= (out + in);
     }
 
     /* Write the first descriptor into the available ring */
-    vring->avail->ring[vq->master_vring_avail.idx & (vring->num - 1)] = idx;
+    vring->avail->ring[DESC_INDEX(vring->num, vq->master_vring_avail.idx)] = idx;
     MemoryBarrier();
     vring->avail->idx = ++vq->master_vring_avail.idx;
     vq->num_added_since_kick++;
@@ -148,7 +154,7 @@ void *virtqueue_get_buf(
     }
     KeMemoryBarrier();
 
-    idx = vq->last_used & (vq->vring.num - 1);
+    idx = DESC_INDEX(vq->vring.num, vq->last_used);
     *len = vq->vring.used->ring[idx].len;
 
     /* Get the first used descriptor */
@@ -156,13 +162,7 @@ void *virtqueue_get_buf(
     opaque = vq->opaque[idx];
 
     /* Put all descriptors back to the free list */
-    while (vq->vring.desc[idx].flags & VIRTQ_DESC_F_NEXT)
-    {
-        idx = put_unused_desc(vq, idx);
-        vq->num_unused++;
-    }
-    put_unused_desc(vq, idx);
-    vq->num_unused++;
+    put_unused_desc_chain(vq, idx);
 
     vq->last_used++;
     if (virtqueue_is_interrupt_enabled(vq)) {
@@ -183,13 +183,18 @@ BOOLEAN virtqueue_has_buf(struct virtqueue *vq)
 /* Returns true if the device should be notified, false otherwise */
 bool virtqueue_kick_prepare(struct virtqueue *vq)
 {
+    bool wrap_around;
+    u16 old, new;
     KeMemoryBarrier();
-    u16 old = (u16)(vq->master_vring_avail.idx - vq->num_added_since_kick);
-    u16 new = vq->master_vring_avail.idx;
+
+    wrap_around = (vq->num_added_since_kick >= UINT16_MAX);
+
+    old = (u16)(vq->master_vring_avail.idx - vq->num_added_since_kick);
+    new = vq->master_vring_avail.idx;
     vq->num_added_since_kick = 0;
 
     if (vq->event_suppression_enabled) {
-        return (bool)vring_need_event(vring_avail_event(&vq->vring), new, old);
+        return wrap_around || (bool)vring_need_event(vring_avail_event(&vq->vring), new, old);
     } else {
         return !(vq->vring.used->flags & VRING_USED_F_NO_NOTIFY);
     }
@@ -263,7 +268,7 @@ struct virtqueue *vring_new_virtqueue(
     struct virtqueue *vq = (struct virtqueue *)control;
     u16 i;
 
-    if (num & (num - 1)) {
+    if (DESC_INDEX(num, num) != 0) {
         DPrintf(0, ("Virtqueue length %u is not a power of 2\n", num));
         return NULL;
     }
@@ -274,6 +279,7 @@ struct virtqueue *vring_new_virtqueue(
     vq->vdev = vdev;
     vq->notification_cb = notify;
     vq->index = index;
+    vq->event_suppression_enabled = true;
 
     /* Build a linked list of unused descriptors */
     vq->num_unused = num;
@@ -285,12 +291,13 @@ struct virtqueue *vring_new_virtqueue(
     return vq;
 }
 
-/* Re-initializes an already initialized and possibly used virtqueue */
+/* Re-initializes an already initialized virtqueue */
 void virtqueue_shutdown(struct virtqueue *vq)
 {
     unsigned int num = vq->vring.num;
     void *pages = vq->vring.desc;
     unsigned int vring_align = vq->vdev->addr ? PAGE_SIZE : SMP_CACHE_BYTES;
+    bool event_suppression_enabled = vq->event_suppression_enabled;
 
     RtlZeroMemory(pages, vring_size(num, vring_align));
     (void)vring_new_virtqueue(
@@ -301,6 +308,7 @@ void virtqueue_shutdown(struct virtqueue *vq)
         pages,
         vq->notification_cb,
         vq);
+    virtio_set_queue_event_suppression(vq, event_suppression_enabled);
 }
 
 /* Gets the opaque pointer associated with a not-yet-returned buffer, or NULL if no buffer is available
@@ -313,12 +321,7 @@ void *virtqueue_detach_unused_buf(struct virtqueue *vq)
     for (idx = 0; idx < (u16)vq->vring.num; idx++) {
         opaque = vq->opaque[idx];
         if (opaque) {
-            while (vq->vring.desc[idx].flags & VIRTQ_DESC_F_NEXT) {
-                idx = put_unused_desc(vq, idx);
-                vq->num_unused++;
-            }
-            put_unused_desc(vq, idx);
-            vq->num_unused++;
+            put_unused_desc_chain(vq, idx);
             vq->vring.avail->idx = --vq->master_vring_avail.idx;
             break;
         }

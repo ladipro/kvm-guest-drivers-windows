@@ -15,6 +15,7 @@
 #pragma once
 
 #include <ntddk.h>
+#include <ntintsafe.h>
 
 #define ENOSPC 1
 
