@@ -6,7 +6,7 @@ TARGETPATH=obj
 
 INCLUDES=.;..\..\..\VirtIO
 
-SOURCES =  $(SOURCES) ParaNdis-Common.c ParaNdis-Debug.c ParaNdis-Oid.c sw-offload.c
+SOURCES =  $(SOURCES) ParaNdis-Common.c ParaNdis-Debug.c ParaNdis-Oid.c ParaNdis-VirtIO.c sw-offload.c
 
 
 

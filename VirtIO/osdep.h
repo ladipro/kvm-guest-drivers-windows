@@ -22,6 +22,10 @@
 
 #include <ntddk.h>
 
+#ifndef NDIS50_MINIPORT
+#define NDIS50_MINIPORT
+#endif
+
 #define ktime_t ULONGLONG
 #define ktime_get() KeQueryPerformanceCounter(NULL).QuadPart
 
@@ -91,7 +95,7 @@ inline LONG_PTR IS_ERR(const void *ptr)
 #define le16_to_cpu(x) (x)
 #define le32_to_cpu(x) (x)
 
-#define PCI_CAP_ID_VNDR PCI_CAPABILITY_ID_VENDOR_SPECIFIC
+#define PCI_CAP_ID_VNDR 0x09
 #define IORESOURCE_IO           0x00000100      /* PCI/ISA I/O ports */
 #define IORESOURCE_MEM          0x00000200
 
@@ -109,5 +113,17 @@ typedef enum {
     __GFP_HIGH
 } gfp_t;
 
+FORCEINLINE
+VOID
+KeMemoryBarrier (
+    VOID
+    )
+{
+    LONG Barrier;
+
+    __asm {
+        xchg Barrier, eax
+    }
+}
 #endif
 #endif

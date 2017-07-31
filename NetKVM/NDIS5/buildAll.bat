@@ -64,6 +64,9 @@ pushd %BUILDROOT%
 call %BUILDROOT%\bin\setenv.bat %BUILDROOT% fre W2K no_prefast
 popd
 call :preparebuild
+pushd ..\..\virtio
+build -cZg
+popd
 build -cZg
 
 if %ERRORLEVEL% NEQ 0 (

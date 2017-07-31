@@ -28,7 +28,8 @@ u32 ReadVirtIODeviceRegister(ULONG_PTR ulRegister)
     ULONG ulValue;
 
     if (ulRegister & ~PORT_MASK) {
-        NdisReadRegisterUlong(ulRegister, &ulValue);
+        ulValue = *(PULONG)ulRegister;
+        //NdisReadRegisterUlong(ulRegister, &ulValue);
     } else {
         NdisRawReadPortUlong(ulRegister, &ulValue);
     }
@@ -53,7 +54,8 @@ u8 ReadVirtIODeviceByte(ULONG_PTR ulRegister)
     u8 bValue;
 
     if (ulRegister & ~PORT_MASK) {
-        NdisReadRegisterUchar(ulRegister, &bValue);
+        bValue = *(u8 *)ulRegister;
+        //NdisReadRegisterUchar(ulRegister, &bValue);
     } else {
         NdisRawReadPortUchar(ulRegister, &bValue);
     }
@@ -78,7 +80,8 @@ u16 ReadVirtIODeviceWord(ULONG_PTR ulRegister)
     u16 wValue;
 
     if (ulRegister & ~PORT_MASK) {
-        NdisReadRegisterUshort(ulRegister, &wValue);
+        wValue = *(u16 *)ulRegister;
+        //NdisReadRegisterUshort(ulRegister, &wValue);
     } else {
         NdisRawReadPortUshort(ulRegister, &wValue);
     }
