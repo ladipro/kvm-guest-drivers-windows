@@ -1,15 +1,11 @@
-/**********************************************************************
- * Copyright (c) 2008-2017 Red Hat, Inc.
- *
- * File: ParaNdis-Oid.h
- *
+/*
  * This file contains common for NDIS5/NDIS6 definition,
  * related to OID support
  *
- * This work is licensed under the terms of the GNU GPL, version 2.  See
- * the COPYING file in the top-level directory.
+ * Copyright (c) 2008-2017 Red Hat, Inc.
  *
-**********************************************************************/
+ *
+ */
 #ifndef PARANDIS_COMMON_OID_H
 #define PARANDIS_COMMON_OID_H
 
