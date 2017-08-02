@@ -30,6 +30,151 @@
 
 typedef struct VirtIOBufferDescriptor VIO_SG, *PVIO_SG;
 
+#define VPD_SUPPORTED_PAGES         0x00
+#define VPD_SERIAL_NUMBER           0x80
+#define VPD_DEVICE_IDENTIFIERS      0x83
+#define VPD_MEDIA_SERIAL_NUMBER     0x84
+#define VPD_SOFTWARE_INTERFACE_IDENTIFIERS 0x84
+#define VPD_NETWORK_MANAGEMENT_ADDRESSES 0x85
+#define VPD_EXTENDED_INQUIRY_DATA   0x86
+#define VPD_MODE_PAGE_POLICY        0x87
+#define VPD_SCSI_PORTS              0x88
+
+typedef struct _VPD_SUPPORTED_PAGES_PAGE {
+    UCHAR DeviceType : 5;
+    UCHAR DeviceTypeQualifier : 3;
+    UCHAR PageCode;
+    UCHAR Reserved;
+    UCHAR PageLength;
+#if !defined(__midl)
+    UCHAR SupportedPageList[0];
+#endif
+} VPD_SUPPORTED_PAGES_PAGE, *PVPD_SUPPORTED_PAGES_PAGE;
+
+typedef struct _VPD_SERIAL_NUMBER_PAGE {
+    UCHAR DeviceType : 5;
+    UCHAR DeviceTypeQualifier : 3;
+    UCHAR PageCode;
+    UCHAR Reserved;
+    UCHAR PageLength;
+#if !defined(__midl)
+    UCHAR SerialNumber[0];
+#endif
+} VPD_SERIAL_NUMBER_PAGE, *PVPD_SERIAL_NUMBER_PAGE;
+
+typedef struct _VPD_IDENTIFICATION_PAGE {
+    UCHAR DeviceType : 5;
+    UCHAR DeviceTypeQualifier : 3;
+    UCHAR PageCode;
+    UCHAR Reserved;
+    UCHAR PageLength;
+
+
+    //
+    // The following field is actually a variable length array of identification
+    // descriptors.  Unfortunately there's no C notation for an array of
+    // variable length structures so we're forced to just pretend.
+    //
+
+#if !defined(__midl)
+    // VPD_IDENTIFICATION_DESCRIPTOR Descriptors[0];
+    UCHAR Descriptors[0];
+#endif
+} VPD_IDENTIFICATION_PAGE, *PVPD_IDENTIFICATION_PAGE;
+
+typedef struct _VPD_IDENTIFICATION_DESCRIPTOR {
+    UCHAR CodeSet : 4;          // VPD_CODE_SET
+    UCHAR Reserved : 4;
+    UCHAR IdentifierType : 4;   // VPD_IDENTIFIER_TYPE
+    UCHAR Association : 2;
+    UCHAR Reserved2 : 2;
+    UCHAR Reserved3;
+    UCHAR IdentifierLength;
+#if !defined(__midl)
+    UCHAR Identifier[0];
+#endif
+} VPD_IDENTIFICATION_DESCRIPTOR, *PVPD_IDENTIFICATION_DESCRIPTOR;
+
+typedef enum _VPD_CODE_SET {
+    VpdCodeSetReserved = 0,
+    VpdCodeSetBinary = 1,
+    VpdCodeSetAscii = 2,
+    VpdCodeSetUTF8 = 3
+} VPD_CODE_SET, *PVPD_CODE_SET;
+
+typedef enum _VPD_IDENTIFIER_TYPE {
+    VpdIdentifierTypeVendorSpecific = 0,
+    VpdIdentifierTypeVendorId = 1,
+    VpdIdentifierTypeEUI64 = 2,
+    VpdIdentifierTypeFCPHName = 3,
+    VpdIdentifierTypePortRelative = 4,
+    VpdIdentifierTypeTargetPortGroup = 5,
+    VpdIdentifierTypeLogicalUnitGroup = 6,
+    VpdIdentifierTypeMD5LogicalUnitId = 7,
+    VpdIdentifierTypeSCSINameString = 8
+} VPD_IDENTIFIER_TYPE, *PVPD_IDENTIFIER_TYPE;
+
+
+//
+// Mode Sense/Select page constants.
+//
+
+#define MODE_PAGE_VENDOR_SPECIFIC       0x00
+#define MODE_PAGE_ERROR_RECOVERY        0x01
+#define MODE_PAGE_DISCONNECT            0x02
+#define MODE_PAGE_FORMAT_DEVICE         0x03 // disk
+#define MODE_PAGE_MRW                   0x03 // cdrom
+#define MODE_PAGE_RIGID_GEOMETRY        0x04
+#define MODE_PAGE_FLEXIBILE             0x05 // disk
+#define MODE_PAGE_WRITE_PARAMETERS      0x05 // cdrom
+#define MODE_PAGE_VERIFY_ERROR          0x07
+#define MODE_PAGE_CACHING               0x08
+#define MODE_PAGE_PERIPHERAL            0x09
+#define MODE_PAGE_CONTROL               0x0A
+#define MODE_PAGE_MEDIUM_TYPES          0x0B
+#define MODE_PAGE_NOTCH_PARTITION       0x0C
+#define MODE_PAGE_CD_AUDIO_CONTROL      0x0E
+#define MODE_PAGE_DATA_COMPRESS         0x0F
+#define MODE_PAGE_DEVICE_CONFIG         0x10
+#define MODE_PAGE_XOR_CONTROL           0x10 // disk
+#define MODE_PAGE_MEDIUM_PARTITION      0x11
+#define MODE_PAGE_ENCLOSURE_SERVICES_MANAGEMENT 0x14
+#define MODE_PAGE_EXTENDED              0x15
+#define MODE_PAGE_EXTENDED_DEVICE_SPECIFIC 0x16
+#define MODE_PAGE_CDVD_FEATURE_SET      0x18
+#define MODE_PAGE_PROTOCOL_SPECIFIC_LUN 0x18
+#define MODE_PAGE_PROTOCOL_SPECIFIC_PORT 0x19
+#define MODE_PAGE_POWER_CONDITION       0x1A
+#define MODE_PAGE_LUN_MAPPING           0x1B
+#define MODE_PAGE_FAULT_REPORTING       0x1C
+#define MODE_PAGE_CDVD_INACTIVITY       0x1D // cdrom
+#define MODE_PAGE_ELEMENT_ADDRESS       0x1D
+#define MODE_PAGE_TRANSPORT_GEOMETRY    0x1E
+#define MODE_PAGE_DEVICE_CAPABILITIES   0x1F
+#define MODE_PAGE_CAPABILITIES          0x2A // cdrom
+
+#define MODE_SENSE_RETURN_ALL           0x3f
+
+#define MODE_SENSE_CURRENT_VALUES       0x00
+#define MODE_SENSE_CHANGEABLE_VALUES    0x40
+#define MODE_SENSE_DEFAULT_VAULES       0x80
+#define MODE_SENSE_SAVED_VALUES         0xc0
+
+typedef union _EIGHT_BYTE {
+
+    struct {
+        UCHAR Byte0;
+        UCHAR Byte1;
+        UCHAR Byte2;
+        UCHAR Byte3;
+        UCHAR Byte4;
+        UCHAR Byte5;
+        UCHAR Byte6;
+        UCHAR Byte7;
+    };
+
+    ULONGLONG AsULongLong;
+} EIGHT_BYTE, *PEIGHT_BYTE;
 
 /* Feature bits */
 #define VIRTIO_BLK_F_BARRIER    0       /* Does host support barriers? */

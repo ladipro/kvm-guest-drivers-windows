@@ -244,19 +244,19 @@ RhelGetLba(
             lba.Byte2 = Cdb->CDB6READWRITE.LogicalBlockLsb;
         }
         break;
-        case SCSIOP_READ12:
-        case SCSIOP_WRITE12:
-        case SCSIOP_WRITE_VERIFY12: {
-            REVERSE_BYTES(&lba, &Cdb->CDB12.LogicalBlock[0]);
-        }
-        break;
-        case SCSIOP_READ16:
-        case SCSIOP_WRITE16:
-        case SCSIOP_READ_CAPACITY16:
-        case SCSIOP_WRITE_VERIFY16: {
-            REVERSE_BYTES_QUAD(&lba, &Cdb->CDB16.LogicalBlock[0]);
-        }
-        break;
+        //case SCSIOP_READ12:
+        //case SCSIOP_WRITE12:
+        //case SCSIOP_WRITE_VERIFY12: {
+        //    REVERSE_BYTES(&lba, &Cdb->CDB12.LogicalBlock[0]);
+        //}
+        //break;
+        //case SCSIOP_READ16:
+        //case SCSIOP_WRITE16:
+        //case SCSIOP_READ_CAPACITY16:
+        //case SCSIOP_WRITE_VERIFY16: {
+        //    REVERSE_BYTES_QUAD(&lba, &Cdb->CDB16.LogicalBlock[0]);
+        //}
+        //break;
         default: {
             ASSERT(FALSE);
             return (ULONGLONG)-1;

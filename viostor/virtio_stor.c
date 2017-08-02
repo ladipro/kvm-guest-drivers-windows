@@ -559,7 +559,7 @@ VirtIoHwInitialize(
 
     memset(&adaptExt->inquiry_data, 0, sizeof(INQUIRYDATA));
 
-    adaptExt->inquiry_data.ANSIVersion = 4;
+    adaptExt->inquiry_data.Versions = 4;
     adaptExt->inquiry_data.ResponseDataFormat = 2;
     adaptExt->inquiry_data.CommandQueue = 1;
     adaptExt->inquiry_data.DeviceType   = DIRECT_ACCESS_DEVICE;
@@ -610,10 +610,10 @@ VirtIoStartIo(
         case SRB_FUNCTION_IO_CONTROL: {
             break;
         }
-        case SRB_FUNCTION_PNP:
-        case SRB_FUNCTION_POWER:
-        case SRB_FUNCTION_RESET_DEVICE:
-        case SRB_FUNCTION_RESET_LOGICAL_UNIT: {
+        //case SRB_FUNCTION_PNP:
+        //case SRB_FUNCTION_POWER:
+        case SRB_FUNCTION_RESET_DEVICE: {
+        //case SRB_FUNCTION_RESET_LOGICAL_UNIT: {
             Srb->SrbStatus = SRB_STATUS_SUCCESS;
             CompleteSRB(DeviceExtension, Srb);
             return TRUE;
@@ -648,14 +648,14 @@ VirtIoStartIo(
             return TRUE;
         }
 
-        case SCSIOP_READ_CAPACITY16:
+        //case SCSIOP_READ_CAPACITY16:
         case SCSIOP_READ_CAPACITY: {
             Srb->SrbStatus = RhelScsiGetCapacity(DeviceExtension, Srb);
             CompleteSRB(DeviceExtension, Srb);
             return TRUE;
         }
-        case SCSIOP_WRITE:
-        case SCSIOP_WRITE16: {
+        case SCSIOP_WRITE: {
+        //case SCSIOP_WRITE16: {
             if (CHECKBIT(adaptExt->features, VIRTIO_BLK_F_RO)) {
                 PSENSE_DATA senseBuffer = (PSENSE_DATA) Srb->SenseInfoBuffer;
                 Srb->SrbStatus = SRB_STATUS_ERROR;
@@ -666,8 +666,8 @@ VirtIoStartIo(
                 return TRUE;
             }
         }
-        case SCSIOP_READ:
-        case SCSIOP_READ16: {
+        case SCSIOP_READ: {
+        //case SCSIOP_READ16: {
             Srb->SrbStatus = SRB_STATUS_PENDING;
             if(!RhelDoReadWrite(DeviceExtension, Srb)) {
                 Srb->SrbStatus = SRB_STATUS_BUSY;
@@ -683,19 +683,19 @@ VirtIoStartIo(
         case SCSIOP_REQUEST_SENSE:
         case SCSIOP_TEST_UNIT_READY:
         case SCSIOP_RESERVE_UNIT:
-        case SCSIOP_RESERVE_UNIT10:
+        //case SCSIOP_RESERVE_UNIT10:
         case SCSIOP_RELEASE_UNIT:
-        case SCSIOP_RELEASE_UNIT10:
+        //case SCSIOP_RELEASE_UNIT10:
         case SCSIOP_VERIFY:
-        case SCSIOP_VERIFY16:
+        //case SCSIOP_VERIFY16:
         case SCSIOP_MEDIUM_REMOVAL: {
             Srb->SrbStatus = SRB_STATUS_SUCCESS;
             Srb->ScsiStatus = SCSISTAT_GOOD;
             CompleteSRB(DeviceExtension, Srb);
             return TRUE;
         }
-        case SCSIOP_SYNCHRONIZE_CACHE:
-        case SCSIOP_SYNCHRONIZE_CACHE16: {
+        case SCSIOP_SYNCHRONIZE_CACHE: {
+        //case SCSIOP_SYNCHRONIZE_CACHE16: {
             Srb->SrbStatus = SRB_STATUS_PENDING;
             Srb->ScsiStatus = SCSISTAT_GOOD;
             if (!RhelDoFlush(DeviceExtension, Srb, TRUE)) {
@@ -1054,25 +1054,22 @@ RhelScsiGetInquiryData(
     dataLen = Srb->DataTransferLength;
 
     SrbStatus = SRB_STATUS_SUCCESS;
-    if((cdb->CDB6INQUIRY3.PageCode != VPD_SUPPORTED_PAGES) &&
-       (cdb->CDB6INQUIRY3.EnableVitalProductData == 0)) {
-        Srb->ScsiStatus = SCSISTAT_CHECK_CONDITION;
-    }
-    else if ((cdb->CDB6INQUIRY3.PageCode == VPD_SUPPORTED_PAGES) &&
-             (cdb->CDB6INQUIRY3.EnableVitalProductData == 1)) {
+    //if(cdb->CDB6INQUIRY.PageCode != /*VPD_SUPPORTED_PAGES*/0) {
+    //    Srb->ScsiStatus = SCSISTAT_CHECK_CONDITION;
+    //}
+    /*else*/ if ((cdb->CDB6INQUIRY.PageCode == 0x00)) {
 
         PVPD_SUPPORTED_PAGES_PAGE SupportPages;
         SupportPages = (PVPD_SUPPORTED_PAGES_PAGE)Srb->DataBuffer;
         memset(SupportPages, 0, sizeof(VPD_SUPPORTED_PAGES_PAGE));
-        SupportPages->PageCode = VPD_SUPPORTED_PAGES;
+        SupportPages->PageCode = 0x00;
         SupportPages->PageLength = 3;
-        SupportPages->SupportedPageList[0] = VPD_SUPPORTED_PAGES;
-        SupportPages->SupportedPageList[1] = VPD_SERIAL_NUMBER;
-        SupportPages->SupportedPageList[2] = VPD_DEVICE_IDENTIFIERS;
+        SupportPages->SupportedPageList[0] = 0x00;
+        SupportPages->SupportedPageList[1] = 0x80;
+        SupportPages->SupportedPageList[2] = 0x83;
         Srb->DataTransferLength = sizeof(VPD_SUPPORTED_PAGES_PAGE) + SupportPages->PageLength;
     }
-    else if ((cdb->CDB6INQUIRY3.PageCode == VPD_SERIAL_NUMBER) &&
-             (cdb->CDB6INQUIRY3.EnableVitalProductData == 1)) {
+    else if ((cdb->CDB6INQUIRY.PageCode == 0x80)) {
 
         PVPD_SERIAL_NUMBER_PAGE SerialPage;
         SerialPage = (PVPD_SERIAL_NUMBER_PAGE)Srb->DataBuffer;
@@ -1086,8 +1083,7 @@ RhelScsiGetInquiryData(
         }
         Srb->DataTransferLength = sizeof(VPD_SERIAL_NUMBER_PAGE) + SerialPage->PageLength;
     }
-    else if ((cdb->CDB6INQUIRY3.PageCode == VPD_DEVICE_IDENTIFIERS) &&
-             (cdb->CDB6INQUIRY3.EnableVitalProductData == 1)) {
+    else if ((cdb->CDB6INQUIRY.PageCode == VPD_DEVICE_IDENTIFIERS)) {
 
         PVPD_IDENTIFICATION_PAGE IdentificationPage;
         PVPD_IDENTIFICATION_DESCRIPTOR IdentificationDescr;
@@ -1248,7 +1244,7 @@ RhelScsiGetCapacity(
 {
     UCHAR SrbStatus = SRB_STATUS_SUCCESS;
     PREAD_CAPACITY_DATA readCap;
-    PREAD_CAPACITY_DATA_EX readCapEx;
+    //PREAD_CAPACITY_DATA_EX readCapEx;
     u64 lastLBA;
     EIGHT_BYTE lba;
     u64 blocksize;
@@ -1265,13 +1261,13 @@ RhelScsiGetCapacity(
 #endif
 
     readCap = (PREAD_CAPACITY_DATA)Srb->DataBuffer;
-    readCapEx = (PREAD_CAPACITY_DATA_EX)Srb->DataBuffer;
+    //readCapEx = (PREAD_CAPACITY_DATA_EX)Srb->DataBuffer;
 
     lba.AsULongLong = 0;
-    if (cdb->CDB6GENERIC.OperationCode == SCSIOP_READ_CAPACITY16 ){
-         PMI = cdb->READ_CAPACITY16.PMI & 1;
-         REVERSE_BYTES_QUAD(&lba, &cdb->READ_CAPACITY16.LogicalBlock[0]);
-    }
+    //if (cdb->CDB6GENERIC.OperationCode == SCSIOP_READ_CAPACITY16 ){
+    //     PMI = cdb->READ_CAPACITY16.PMI & 1;
+    //     REVERSE_BYTES_QUAD(&lba, &cdb->READ_CAPACITY16.LogicalBlock[0]);
+    //}
 
     if (!PMI && lba.AsULongLong) {
 
@@ -1296,12 +1292,12 @@ RhelScsiGetCapacity(
         REVERSE_BYTES(&readCap->BytesPerBlock,
                           &blocksize);
     } else {
-        ASSERT(Srb->DataTransferLength ==
-                          sizeof(READ_CAPACITY_DATA_EX));
-        REVERSE_BYTES_QUAD(&readCapEx->LogicalBlockAddress.QuadPart,
-                          &lastLBA);
-        REVERSE_BYTES(&readCapEx->BytesPerBlock,
-                          &blocksize);
+        //ASSERT(Srb->DataTransferLength ==
+        //                  sizeof(READ_CAPACITY_DATA_EX));
+        //REVERSE_BYTES_QUAD(&readCapEx->LogicalBlockAddress.QuadPart,
+        //                  &lastLBA);
+        //REVERSE_BYTES(&readCapEx->BytesPerBlock,
+        //                  &blocksize);
     }
     Srb->ScsiStatus = SCSISTAT_GOOD;
     return SrbStatus;

@@ -10,6 +10,7 @@ if /i "%1"=="Win7" goto :checkarch
 if /i "%1"=="Wlh" goto :checkarch
 if /i "%1"=="Wnet" goto :checkarch
 if /i "%1"=="WXp" goto :checkarch
+if /i "%1"=="W2K" goto :checkarch
 goto :printerr
 :checkarch
 if /i "%2"=="x86" goto :makeinstall
@@ -58,12 +59,25 @@ if /i "%1"=="win7" goto create_vista
 if /i "%1"=="win8" goto create_win8
 if /i "%1"=="wnet" goto create_xp
 if /i "%1"=="wxp" goto create_xp
+if /i "%1"=="w2k" goto create_2k
 goto error_inf2cat
 
 :create_xp
 setlocal
 if /i "%2"=="x86" set _OSMASK_=XP_X86,Server2003_X86
 if /i "%2"=="x64" set _OSMASK_=XP_X64,Server2003_X64
+call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" %INST_ARC%
+goto run_inf2cat
+
+:create_xp
+setlocal
+if /i "%2"=="x86" set _OSMASK_=2000
+call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" %INST_ARC%
+goto run_inf2cat
+
+:create_2k
+setlocal
+if /i "%2"=="x86" set _OSMASK_=2000
 call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" %INST_ARC%
 goto run_inf2cat
 
