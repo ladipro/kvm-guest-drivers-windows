@@ -113,17 +113,5 @@ typedef enum {
     __GFP_HIGH
 } gfp_t;
 
-FORCEINLINE
-VOID
-KeMemoryBarrier (
-    VOID
-    )
-{
-    LONG Barrier;
-
-    __asm {
-        xchg Barrier, eax
-    }
-}
 #endif
 #endif
