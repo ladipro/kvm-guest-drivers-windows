@@ -48,7 +48,7 @@ HIDConsumerEventToReport(
     PUCHAR pReport = pClass->pHidReport;
     PINPUT_CLASS_CONSUMER pConsumerDesc = (PINPUT_CLASS_CONSUMER)pClass;
 
-    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_READ, "--> %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_READ, ("--> %s\n", __FUNCTION__));
 
     pReport[HID_REPORT_ID_OFFSET] = pClass->uReportID;
     if (pEvent->type == EV_KEY && pEvent->code < pConsumerDesc->cbControlMapLen)
@@ -76,7 +76,7 @@ HIDConsumerEventToReport(
         }
     }
 
-    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_READ, "<-- %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_READ, ("<-- %s\n", __FUNCTION__));
     return STATUS_SUCCESS;
 }
 
@@ -84,12 +84,13 @@ static VOID
 HIDConsumerCleanup(
     PINPUT_CLASS_COMMON pClass)
 {
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "--> %s\n", __FUNCTION__);
+    PINPUT_CLASS_CONSUMER pConsumerDesc;
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("--> %s\n", __FUNCTION__));
 
-    PINPUT_CLASS_CONSUMER pConsumerDesc = (PINPUT_CLASS_CONSUMER)pClass;
+    pConsumerDesc = (PINPUT_CLASS_CONSUMER)pClass;
     VIOInputFree(&pConsumerDesc->pControlMap);
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "<-- %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("<-- %s\n", __FUNCTION__));
 }
 
 NTSTATUS
@@ -104,7 +105,7 @@ HIDConsumerProbe(
     USHORT uMaxKeyCode;
     BOOLEAN bGotKey;
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "--> %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("--> %s\n", __FUNCTION__));
 
     // first pass over the pKeys data - find the max key code we need to handle
     uMaxKeyCode = 0;
@@ -126,7 +127,7 @@ HIDConsumerProbe(
     if (!bGotKey)
     {
         // no keys in the array means that we're done
-        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "No consumer key found\n");
+        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("No consumer key found\n"));
         goto Exit;
     }
 
@@ -199,8 +200,8 @@ HIDConsumerProbe(
     HIDAppend1(pHidDesc, HID_TAG_END_COLLECTION);
 
     TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT,
-                "Created HID consumer report descriptor with %d controls\n",
-                pConsumerDesc->uNumOfControls);
+                ("Created HID consumer report descriptor with %d controls\n",
+                pConsumerDesc->uNumOfControls));
 
     // calculate the consumer HID report size
     pConsumerDesc->Common.cbHidReportSize =
@@ -217,6 +218,6 @@ Exit:
         VIOInputFree(&pConsumerDesc);
     }
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "<-- %s (%08x)\n", __FUNCTION__, status);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("<-- %s (%08x)\n", __FUNCTION__, status));
     return status;
 }

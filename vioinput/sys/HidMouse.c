@@ -65,7 +65,7 @@ HIDMouseEventToReport(
     PINPUT_CLASS_MOUSE pMouseDesc = (PINPUT_CLASS_MOUSE)pClass;
     PULONG pMap;
 
-    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_INIT, "--> %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_INIT, ("--> %s\n", __FUNCTION__));
 
     pReport[HID_REPORT_ID_OFFSET] = pClass->uReportID;
     switch (pEvent->type)
@@ -149,7 +149,7 @@ HIDMouseEventToReport(
         break;
     }
 
-    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_INIT, "<-- %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_INIT, ("<-- %s\n", __FUNCTION__));
     return STATUS_SUCCESS;
 }
 
@@ -157,12 +157,13 @@ static VOID
 HIDMouseCleanup(
     PINPUT_CLASS_COMMON pClass)
 {
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "--> %s\n", __FUNCTION__);
+    PINPUT_CLASS_MOUSE pMouseDesc;
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("--> %s\n", __FUNCTION__));
 
-    PINPUT_CLASS_MOUSE pMouseDesc = (PINPUT_CLASS_MOUSE)pClass;
+    pMouseDesc = (PINPUT_CLASS_MOUSE)pClass;
     VIOInputFree(&pMouseDesc->pAxisMap);
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "<-- %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("<-- %s\n", __FUNCTION__));
 }
 
 static VOID
@@ -175,13 +176,21 @@ HIDMouseAxisMapAppend(
     DynamicArrayAppend(pAxisMap, &uAxisIndex, sizeof(ULONG));
 }
 
+#ifndef HID_USAGE_GENERIC_RESOLUTION_MULTIPLIER
+#define HID_USAGE_GENERIC_RESOLUTION_MULTIPLIER                         ((USAGE) 0x48)
+#endif
+
+#ifndef HID_USAGE_CONSUMER_AC_PAN
+#define HID_USAGE_CONSUMER_AC_PAN                   ((USAGE) 0x238)
+#endif
+
 static VOID
 HIDMouseDescribeWheel(
     PDYNAMIC_ARRAY pHidDesc,
     ULONG uUsagePage,
     ULONG uWheelType)
 {
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "--> %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("--> %s\n", __FUNCTION__));
 
     HIDAppend2(pHidDesc, HID_TAG_COLLECTION, HID_COLLECTION_LOGICAL);
 
@@ -211,7 +220,7 @@ HIDMouseDescribeWheel(
 
     HIDAppend1(pHidDesc, HID_TAG_END_COLLECTION);
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "<-- %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("<-- %s\n", __FUNCTION__));
 }
 
 NTSTATUS
@@ -230,7 +239,7 @@ HIDMouseProbe(
     SIZE_T cbInitialHidSize = pHidDesc->Size;
     DYNAMIC_ARRAY AxisMap = { NULL };
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "--> %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("--> %s\n", __FUNCTION__));
 
     // allocate and initialize pMouseDesc
     pMouseDesc = VIOInputAlloc(sizeof(INPUT_CLASS_MOUSE));
@@ -261,19 +270,19 @@ HIDMouseProbe(
             {
                 // individual mouse button functions are not specified in the HID report,
                 // only their count is; the max button code we find will determine the count
-                TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "Got button %d\n", uButtonCode);
+                TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("Got button %d\n", uButtonCode));
                 pMouseDesc->uNumOfButtons = max(pMouseDesc->uNumOfButtons, uButtonCode - BTN_MOUSE + 1);
             }
             else if (uButtonCode == BTN_GEAR_DOWN || uButtonCode == BTN_GEAR_UP) 
             {
                 // wheel is modeled as a pair of buttons in evdev but it's an axis in HID
-                TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "Got button-based vertical wheel\n");
+                TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("Got button-based vertical wheel\n"));
                 pMouseDesc->uFlags |= CLASS_MOUSE_HAS_V_WHEEL;
             }
             else
             {
                 // not a mouse button, put it back and let other devices claim it
-                TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "Got non-button key %d\n", uButtonCode);
+                TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("Got non-button key %d\n", uButtonCode));
                 non_buttons |= (1 << uValue);
             }
         }
@@ -326,21 +335,21 @@ HIDMouseProbe(
                 case REL_RZ: uAxisCode = HID_USAGE_GENERIC_RZ; break;
                 case REL_WHEEL:
                 {
-                    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "Got axis-based vertical wheel\n");
+                    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("Got axis-based vertical wheel\n"));
                     pMouseDesc->uFlags |= CLASS_MOUSE_SUPPORTS_REL_WHEEL;
                     pMouseDesc->uFlags |= CLASS_MOUSE_HAS_V_WHEEL;
                     break;
                 }
                 case REL_DIAL:
                 {
-                    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "Got axis-based horizontal wheel (REL_DIAL)\n");
+                    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("Got axis-based horizontal wheel (REL_DIAL)\n"));
                     pMouseDesc->uFlags |= CLASS_MOUSE_SUPPORTS_REL_DIAL;
                     pMouseDesc->uFlags |= CLASS_MOUSE_HAS_H_WHEEL;
                     break;
                 }
                 case REL_HWHEEL:
                 {
-                    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "Got axis-based horizontal wheel (REL_HWHEEL)\n");
+                    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("Got axis-based horizontal wheel (REL_HWHEEL)\n"));
                     pMouseDesc->uFlags |= CLASS_MOUSE_SUPPORTS_REL_HWHEEL;
                     pMouseDesc->uFlags |= CLASS_MOUSE_HAS_H_WHEEL;
                     break;
@@ -350,7 +359,7 @@ HIDMouseProbe(
 
                 if (uAxisCode != 0)
                 {
-                    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "Got rel axis %d\n", uAxisCode);
+                    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("Got rel axis %d\n", uAxisCode));
                     HIDAppend2(pHidDesc, HID_TAG_USAGE, uAxisCode);
 
                     // add mapping for this axis
@@ -400,8 +409,8 @@ HIDMouseProbe(
                     struct virtio_input_absinfo AbsInfo;
                     GetAbsAxisInfo(pContext, uAbsCode, &AbsInfo);
 
-                    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "Got abs axis %d, min %d, max %d\n",
-                                uAxisCode, AbsInfo.min, AbsInfo.max);
+                    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("Got abs axis %d, min %d, max %d\n",
+                                uAxisCode, AbsInfo.min, AbsInfo.max));
                     HIDAppend2(pHidDesc, HID_TAG_USAGE, uAxisCode);
 
                     // we specify the minimum and maximum per-axis
@@ -426,7 +435,7 @@ HIDMouseProbe(
     if (uNumOfRelAxes == 0 && uNumOfAbsAxes == 0)
     {
         // this is not a mouse
-        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "No mouse axis found\n");
+        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("No mouse axis found\n"));
         VIOInputFree(&pMouseDesc);
         pHidDesc->Size = cbInitialHidSize;
         goto Exit;
@@ -495,12 +504,12 @@ HIDMouseProbe(
     HIDAppend1(pHidDesc, HID_TAG_END_COLLECTION);
 
     TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT,
-                "Created HID mouse report descriptor with %d buttons, %d rel axes, %d abs axes, vwheel %s, hwheel %s\n",
+                ("Created HID mouse report descriptor with %d buttons, %d rel axes, %d abs axes, vwheel %s, hwheel %s\n",
                 pMouseDesc->uNumOfButtons,
                 uNumOfRelAxes,
                 uNumOfAbsAxes,
                 (pMouseDesc->uFlags & CLASS_MOUSE_HAS_V_WHEEL) ? "YES" : "NO",
-                (pMouseDesc->uFlags & CLASS_MOUSE_HAS_H_WHEEL) ? "YES" : "NO");
+                (pMouseDesc->uFlags & CLASS_MOUSE_HAS_H_WHEEL) ? "YES" : "NO"));
 
     // calculate the mouse HID report size
     pMouseDesc->Common.cbHidReportSize =
@@ -520,6 +529,6 @@ Exit:
         VIOInputFree(&pMouseDesc);
     }
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "<-- %s (%08x)\n", __FUNCTION__, status);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("<-- %s (%08x)\n", __FUNCTION__, status));
     return status;
 }

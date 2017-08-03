@@ -52,7 +52,7 @@ HIDJoystickEventToReport(
     PUCHAR pReport = pClass->pHidReport;
     PINPUT_CLASS_JOYSTICK pJoystickDesc = (PINPUT_CLASS_JOYSTICK)pClass;
 
-    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_READ, "--> %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_READ, ("--> %s\n", __FUNCTION__));
 
     pReport[HID_REPORT_ID_OFFSET] = pClass->uReportID;
     switch (pEvent->type)
@@ -95,7 +95,7 @@ HIDJoystickEventToReport(
         break;
     }
 
-    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_READ, "<-- %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_READ, ("<-- %s\n", __FUNCTION__));
     return STATUS_SUCCESS;
 }
 
@@ -103,12 +103,13 @@ static VOID
 HIDJoystickCleanup(
     PINPUT_CLASS_COMMON pClass)
 {
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "--> %s\n", __FUNCTION__);
+    PINPUT_CLASS_JOYSTICK pJoystickDesc;
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("--> %s\n", __FUNCTION__));
 
-    PINPUT_CLASS_JOYSTICK pJoystickDesc = (PINPUT_CLASS_JOYSTICK)pClass;
+    pJoystickDesc = (PINPUT_CLASS_JOYSTICK)pClass;
     VIOInputFree(&pJoystickDesc->pAxisMap);
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "<-- %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("<-- %s\n", __FUNCTION__));
 }
 
 static VOID
@@ -135,7 +136,7 @@ HIDJoystickProbe(
     ULONG uNumOfAbsAxes = 0, uNumOfButtons = 0;
     DYNAMIC_ARRAY AxisMap = { NULL };
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "--> %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("--> %s\n", __FUNCTION__));
 
     for (i = 0; i < pButtons->size; i++)
     {
@@ -147,7 +148,7 @@ HIDJoystickProbe(
             {
                 // individual joystick button functions are not specified in the HID report,
                 // only their count is; the max button code we find will determine the count
-                TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "Got button %d\n", uButtonCode);
+                TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("Got button %d\n", uButtonCode));
                 uNumOfButtons = max(uNumOfButtons, uButtonCode - BTN_JOYSTICK + 1);
             }
             else
@@ -161,7 +162,7 @@ HIDJoystickProbe(
 
     if (uNumOfButtons == 0)
     {
-        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "Joystick buttons not found\n");
+        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("Joystick buttons not found\n"));
         goto Exit;
     }
 
@@ -219,8 +220,8 @@ HIDJoystickProbe(
                 struct virtio_input_absinfo AbsInfo;
                 GetAbsAxisInfo(pContext, uAbsCode, &AbsInfo);
 
-                TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "Got joystick axis %d, min %d, max %d\n",
-                            uAxisCode, AbsInfo.min, AbsInfo.max);
+                TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("Got joystick axis %d, min %d, max %d\n",
+                            uAxisCode, AbsInfo.min, AbsInfo.max));
 
                 // some of the supported axes are on the generic page, some on the simulation page
                 if (bSimulationPage)
@@ -285,9 +286,9 @@ HIDJoystickProbe(
     HIDAppend1(pHidDesc, HID_TAG_END_COLLECTION);
 
     TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT,
-                "Created HID joystick report descriptor with %d axes and %d buttons\n",
+                ("Created HID joystick report descriptor with %d axes and %d buttons\n",
                 uNumOfAbsAxes,
-                uNumOfButtons);
+                uNumOfButtons));
 
     // calculate the joystick HID report size
     pJoystickDesc->Common.cbHidReportSize =
@@ -306,6 +307,6 @@ Exit:
         VIOInputFree(&pJoystickDesc);
     }
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "<-- %s (%08x)\n", __FUNCTION__, status);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("<-- %s (%08x)\n", __FUNCTION__, status));
     return status;
 }

@@ -101,7 +101,7 @@ HIDKeyboardEventKeyToReportKey(
     UCHAR uMask, uByte, uBit;
     SIZE_T i, iIndex;
 
-    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_READ, "--> %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_READ, ("--> %s\n", __FUNCTION__));
 
     // figure out the bitmap index and mask
     iIndex = uCode / 8;
@@ -175,7 +175,7 @@ HIDKeyboardEventKeyToReportKey(
         }
     }
 
-    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_READ, "<-- %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_READ, ("<-- %s\n", __FUNCTION__));
 }
 
 static NTSTATUS
@@ -186,7 +186,7 @@ HIDKeyboardEventToReport(
     PUCHAR pReport = pClass->pHidReport;
     PINPUT_CLASS_KEYBOARD pKeyboardDesc = (PINPUT_CLASS_KEYBOARD)pClass;
 
-    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_READ, "--> %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_READ, ("--> %s\n", __FUNCTION__));
 
     pReport[HID_REPORT_ID_OFFSET] = pClass->uReportID;
     if (pEvent->type == EV_KEY)
@@ -213,7 +213,7 @@ HIDKeyboardEventToReport(
         }
     }
 
-    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_READ, "<-- %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_READ, ("<-- %s\n", __FUNCTION__));
     return STATUS_SUCCESS;
 }
 
@@ -228,7 +228,7 @@ HIDKeyboardSendStatus(
     PVIRTIO_INPUT_EVENT_WITH_REQUEST pEvent;
     NTSTATUS status;
 
-    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_WRITE, "--> %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_WRITE, ("--> %s\n", __FUNCTION__));
 
     pEvent = VIOInputAlloc(sizeof(VIRTIO_INPUT_EVENT_WITH_REQUEST));
     if (pEvent == NULL)
@@ -247,7 +247,7 @@ HIDKeyboardSendStatus(
         WdfSpinLockRelease(pContext->StatusQLock);
     }
 
-    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_WRITE, "<-- %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_WRITE, ("<-- %s\n", __FUNCTION__));
     return status;
 }
 
@@ -265,7 +265,7 @@ HIDKeyboardReportToEvent(
     NTSTATUS status = STATUS_SUCCESS;
     SIZE_T i;
 
-    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_WRITE, "--> %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_WRITE, ("--> %s\n", __FUNCTION__));
 
     if (cbReport < pKeyboardDesc->cbOutputReport)
     {
@@ -326,7 +326,7 @@ HIDKeyboardReportToEvent(
         WdfRequestComplete(Request, status);
     }
 
-    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_WRITE, "<-- %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_WRITE, ("<-- %s\n", __FUNCTION__));
     return status;
 }
 
@@ -334,13 +334,14 @@ static VOID
 HIDKeyboardCleanup(
     PINPUT_CLASS_COMMON pClass)
 {
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "--> %s\n", __FUNCTION__);
+    PINPUT_CLASS_KEYBOARD pKeyboardDesc;
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("--> %s\n", __FUNCTION__));
 
-    PINPUT_CLASS_KEYBOARD pKeyboardDesc = (PINPUT_CLASS_KEYBOARD)pClass;
+    pKeyboardDesc = (PINPUT_CLASS_KEYBOARD)pClass;
     VIOInputFree(&pKeyboardDesc->pLastOutputReport);
     VIOInputFree(&pKeyboardDesc->pKeysPressed);
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "<-- %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("<-- %s\n", __FUNCTION__));
 }
 
 NTSTATUS
@@ -355,7 +356,7 @@ HIDKeyboardProbe(
     UCHAR i, uValue, uMaxKey, uMaxLed;
     BOOLEAN bGotKey, bGotLed;
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "--> %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("--> %s\n", __FUNCTION__));
 
     uMaxKey = 0;
     bGotKey = FALSE;
@@ -386,7 +387,7 @@ HIDKeyboardProbe(
     if (!bGotKey)
     {
         // no keys in the array means that we're done
-        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "No keyboard key found\n");
+        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("No keyboard key found\n"));
         goto Exit;
     }
 
@@ -434,7 +435,7 @@ HIDKeyboardProbe(
             UCHAR uCode = HIDLEDEventCodeToUsageCode(uLedCode);
             if (uCode != 0)
             {
-                TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "Got LED %d\n", uLedCode);
+                TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("Got LED %d\n", uLedCode));
                 uMaxLed = max(uMaxLed, uCode);
                 bGotLed = TRUE;
             }
@@ -496,9 +497,9 @@ HIDKeyboardProbe(
     }
 
     TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT,
-                "Created HID keyboard report descriptor with %d keys and %d LEDs\n",
+                ("Created HID keyboard report descriptor with %d keys and %d LEDs\n",
                 uMaxKey + 1,
-                bGotLed ? (uMaxLed + 1) : 0);
+                bGotLed ? (uMaxLed + 1) : 0));
 
     // calculate the keyboard HID report size
     pKeyboardDesc->Common.cbHidReportSize =
@@ -516,6 +517,6 @@ Exit:
         VIOInputFree(&pKeyboardDesc);
     }
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "<-- %s (%08x)\n", __FUNCTION__, status);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("<-- %s (%08x)\n", __FUNCTION__, status));
     return status;
 }

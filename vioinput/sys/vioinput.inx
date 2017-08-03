@@ -48,22 +48,20 @@ viohidkmdf.sys = 1,,
 ;*****************************************
 
 [Manufacturer]
-%REDHAT%=VirtioInput,NT$ARCH$
+%REDHAT%=VirtioInput
 
-[VirtioInput.NT$ARCH$]
+[VirtioInput]
 ;
 ; Hw Id is PCI\VEN_1AF4&DEV_1052&SUBSYS_11001AF4&CC_090200&REV_01
 ;
 %VirtioInput.DeviceDesc%=VirtioInput_Device, PCI\VEN_1AF4&DEV_1052&SUBSYS_11001AF4&REV_01
 %VirtioInput.ChildDesc%=VirtioInput_Child, VIOINPUT\REV_01
 
-[VirtioInput_Device.NT]
+[VirtioInput_Device]
 CopyFiles=Drivers_Dir
-
-[VirtioInput_Child.NT]
-
-[VirtioInput_Device.NT.HW]
 AddReg=VirtioInput_AddReg
+
+[VirtioInput_Child]
 
 [VirtioInput_AddReg]
 HKR,Interrupt Management,,0x00000010
@@ -77,10 +75,10 @@ viohidkmdf.sys
 
 ;-------------- Service installation
 
-[VirtioInput_Device.NT.Services]
+[VirtioInput_Device.Services]
 AddService = VirtioInput, 0x00000002, VirtioInput_Service_Inst  ;flag 0x2 sets this as the service for the device
 
-[VirtioInput_Child.NT.Services]
+[VirtioInput_Child.Services]
 AddService = viohidkmdf, 0x00000002, viohidkmdf_Service_Inst
 
 ; -------------- VirtioInput driver install sections
@@ -100,7 +98,7 @@ ServiceBinary  = %12%\vioinput.sys
 ;--- VirtioInput_Device Coinstaller installation ------
 ;
 
-[VirtioInput_Device.NT.CoInstallers]
+[VirtioInput_Device.CoInstallers]
 AddReg=VirtioInput_Device_CoInstaller_AddReg
 CopyFiles=VirtioInput_Device_CoInstaller_CopyFiles
 
@@ -113,7 +111,7 @@ WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll
 [SourceDisksFiles]
 WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll=1 ; make sure the number matches with SourceDisksNames
 
-[VirtioInput_Device.NT.Wdf]
+[VirtioInput_Device.Wdf]
 KmdfService =  VirtioInput, VirtioInput_wdfsect
 
 [VirtioInput_wdfsect]

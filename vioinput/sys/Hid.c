@@ -58,12 +58,12 @@ EvtIoDeviceControl(
     UNREFERENCED_PARAMETER(InputBufferLength);
 
     TraceEvents(TRACE_LEVEL_VERBOSE, DBG_IOCTLS,
-                "--> %s, code = %d\n", __FUNCTION__, IoControlCode);
+                ("--> %s, code = %d\n", __FUNCTION__, IoControlCode));
 
     switch (IoControlCode)
     {
     case IOCTL_HID_GET_DEVICE_DESCRIPTOR:
-        TraceEvents(TRACE_LEVEL_VERBOSE, DBG_IOCTLS, "IOCTL_HID_GET_DEVICE_DESCRIPTOR\n");
+        TraceEvents(TRACE_LEVEL_VERBOSE, DBG_IOCTLS, ("IOCTL_HID_GET_DEVICE_DESCRIPTOR\n"));
         //
         // Return the device's HID descriptor.
         //
@@ -74,7 +74,7 @@ EvtIoDeviceControl(
         break;
 
     case IOCTL_HID_GET_DEVICE_ATTRIBUTES:
-        TraceEvents(TRACE_LEVEL_VERBOSE, DBG_IOCTLS, "IOCTL_HID_GET_DEVICE_ATTRIBUTES\n");
+        TraceEvents(TRACE_LEVEL_VERBOSE, DBG_IOCTLS, ("IOCTL_HID_GET_DEVICE_ATTRIBUTES\n"));
         //
         // Return the device's attributes in a HID_DEVICE_ATTRIBUTES structure.
         //
@@ -84,7 +84,7 @@ EvtIoDeviceControl(
         break;
 
     case IOCTL_HID_GET_REPORT_DESCRIPTOR:
-        TraceEvents(TRACE_LEVEL_VERBOSE, DBG_IOCTLS, "IOCTL_HID_GET_REPORT_DESCRIPTOR\n");
+        TraceEvents(TRACE_LEVEL_VERBOSE, DBG_IOCTLS, ("IOCTL_HID_GET_REPORT_DESCRIPTOR\n"));
         //
         // Return the report descriptor for the HID device.
         //
@@ -94,7 +94,7 @@ EvtIoDeviceControl(
         break;
 
     case IOCTL_HID_READ_REPORT:
-        TraceEvents(TRACE_LEVEL_VERBOSE, DBG_IOCTLS, "IOCTL_HID_READ_REPORT\n");
+        TraceEvents(TRACE_LEVEL_VERBOSE, DBG_IOCTLS, ("IOCTL_HID_READ_REPORT\n"));
         //
         // Queue up a report request. We'll complete it when we actually
         // receive data from the device.
@@ -110,12 +110,12 @@ EvtIoDeviceControl(
         else
         {
             TraceEvents(TRACE_LEVEL_ERROR, DBG_IOCTLS,
-                        "WdfRequestForwardToIoQueue failed with 0x%x\n", status);
+                        ("WdfRequestForwardToIoQueue failed with 0x%x\n", status));
         }
         break;
 
     case IOCTL_HID_WRITE_REPORT:
-        TraceEvents(TRACE_LEVEL_VERBOSE, DBG_IOCTLS, "IOCTL_HID_WRITE_REPORT\n");
+        TraceEvents(TRACE_LEVEL_VERBOSE, DBG_IOCTLS, ("IOCTL_HID_WRITE_REPORT\n"));
         //
         // Write a report to the device, commonly used for controlling keyboard
         // LEDs. We'll complete the request after the host processes all virtio
@@ -145,7 +145,7 @@ EvtIoDeviceControl(
 
     default:
         TraceEvents(TRACE_LEVEL_INFORMATION, DBG_IOCTLS,
-                    "Unrecognized IOCTL %d\n", IoControlCode);
+                    ("Unrecognized IOCTL %d\n", IoControlCode));
         status = STATUS_NOT_IMPLEMENTED;
         break;
     }
@@ -155,7 +155,7 @@ EvtIoDeviceControl(
         WdfRequestComplete(Request, status);
     }
 
-    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_IOCTLS, "<-- %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_IOCTLS, ("<-- %s\n", __FUNCTION__));
 }
 
 static VOID
@@ -197,11 +197,11 @@ ProcessInputEvent(
     TraceEvents(
         TRACE_LEVEL_VERBOSE,
         DBG_READ,
-        "--> %s TYPE: %d, CODE: %d, VALUE: %d\n",
+        ("--> %s TYPE: %d, CODE: %d, VALUE: %d\n",
         __FUNCTION__,
         pEvent->type,
         pEvent->code,
-        pEvent->value);
+        pEvent->value));
 
     if (pEvent->type == EV_SYN)
     {
@@ -220,7 +220,7 @@ ProcessInputEvent(
             pEvent);
     }
 
-    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_READ, "<-- %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_READ, ("<-- %s\n", __FUNCTION__));
 }
 
 NTSTATUS
@@ -232,7 +232,7 @@ ProcessOutputReport(
     NTSTATUS status = STATUS_NONE_MAPPED;
     ULONG i;
 
-    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_WRITE, "--> %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_WRITE, ("--> %s\n", __FUNCTION__));
 
     for (i = 0; i < pContext->uNumOfClasses; i++)
     {
@@ -252,7 +252,7 @@ ProcessOutputReport(
         }
     }
 
-    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_WRITE, "<-- %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_WRITE, ("<-- %s\n", __FUNCTION__));
     return status;
 }
 
@@ -292,11 +292,14 @@ BOOLEAN DecodeNextBit(PUCHAR pBitmap, PUCHAR pValue)
     return bResult;
 }
 
+#pragma warning(push)
+#pragma warning(disable:4995)
+
 static void DumpReportDescriptor(PHID_REPORT_DESCRIPTOR pDescriptor, SIZE_T cbSize)
 {
     SIZE_T i = 0;
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "HID report descriptor begin\n");
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("HID report descriptor begin\n"));
     while (i < cbSize)
     {
         CHAR buffer[20];
@@ -304,37 +307,39 @@ static void DumpReportDescriptor(PHID_REPORT_DESCRIPTOR pDescriptor, SIZE_T cbSi
         {
         case 0x00:
         {
-            sprintf_s(buffer, sizeof(buffer), "%02x", pDescriptor[i]);
+            sprintf(buffer, "%02x", pDescriptor[i]);
             i++;
             break;
         }
         case 0x01:
         {
-            sprintf_s(buffer, sizeof(buffer), "%02x %02x",
+            sprintf(buffer, "%02x %02x",
                       pDescriptor[i], pDescriptor[i + 1]);
             i += 2;
             break;
         }
         case 0x02:
         {
-            sprintf_s(buffer, sizeof(buffer), "%02x %02x %02x",
+            sprintf(buffer, "%02x %02x %02x",
                       pDescriptor[i], pDescriptor[i + 1], pDescriptor[i + 2]);
             i += 3;
             break;
         }
         case 0x03:
         {
-            sprintf_s(buffer, sizeof(buffer), "%02x %02x %02x %02x %02x",
+            sprintf(buffer, "%02x %02x %02x %02x %02x",
                       pDescriptor[i], pDescriptor[i + 1], pDescriptor[i + 2],
                       pDescriptor[i + 3], pDescriptor[i + 4]);
             i += 5;
             break;
         }
         }
-        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "%s\n", buffer);
+        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("%s\n", buffer));
     }
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "HID report descriptor end\n");
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("HID report descriptor end\n"));
 }
+
+#pragma warning(pop)
 
 static u8 SelectInputConfig(PINPUT_DEVICE pContext, u8 cfgSelect, u8 cfgSubSel)
 {
@@ -402,11 +407,11 @@ VIOInputBuildReportDescriptor(PINPUT_DEVICE pContext)
     SIZE_T cbReportDescriptor;
     UCHAR i, uReportID = 0;
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "--> %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("--> %s\n", __FUNCTION__));
 
     // key/button config
     KeyData.size = SelectInputConfig(pContext, VIRTIO_INPUT_CFG_EV_BITS, EV_KEY);
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "Got EV_KEY bits size %d\n", KeyData.size);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("Got EV_KEY bits size %d\n", KeyData.size));
     for (i = 0; i < KeyData.size; i++)
     {
         VirtIOWdfDeviceGet(
@@ -416,7 +421,7 @@ VIOInputBuildReportDescriptor(PINPUT_DEVICE pContext)
 
     // relative axis config
     RelData.size = SelectInputConfig(pContext, VIRTIO_INPUT_CFG_EV_BITS, EV_REL);
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "Got EV_REL bits size %d\n", RelData.size);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("Got EV_REL bits size %d\n", RelData.size));
     for (i = 0; i < RelData.size; i++)
     {
         VirtIOWdfDeviceGet(
@@ -426,7 +431,7 @@ VIOInputBuildReportDescriptor(PINPUT_DEVICE pContext)
 
     // absolute axis config
     AbsData.size = SelectInputConfig(pContext, VIRTIO_INPUT_CFG_EV_BITS, EV_ABS);
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "Got EV_ABS bits size %d\n", AbsData.size);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("Got EV_ABS bits size %d\n", AbsData.size));
     for (i = 0; i < AbsData.size; i++)
     {
         VirtIOWdfDeviceGet(
@@ -483,7 +488,7 @@ VIOInputBuildReportDescriptor(PINPUT_DEVICE pContext)
     {
         // LED config
         LedData.size = SelectInputConfig(pContext, VIRTIO_INPUT_CFG_EV_BITS, EV_LED);
-        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "Got EV_LED bits size %d\n", LedData.size);
+        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("Got EV_LED bits size %d\n", LedData.size));
         for (i = 0; i < LedData.size; i++)
         {
             VirtIOWdfDeviceGet(
@@ -542,7 +547,7 @@ VIOInputBuildReportDescriptor(PINPUT_DEVICE pContext)
     }
 
 Exit:
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "<-- %s (%08x)\n", __FUNCTION__, status);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("<-- %s (%08x)\n", __FUNCTION__, status));
     return status;
 }
 
@@ -558,7 +563,7 @@ GetAbsAxisInfo(
     if (uAbsAxis <= MAXUCHAR)
     {
         uSize = SelectInputConfig(pContext, VIRTIO_INPUT_CFG_ABS_INFO, (UCHAR)uAbsAxis);
-        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "Got abs axis %d info size %d\n", uAbsAxis, uSize);
+        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("Got abs axis %d info size %d\n", uAbsAxis, uSize));
         for (i = 0; i < uSize && i < sizeof(struct virtio_input_absinfo); i++)
         {
             VirtIOWdfDeviceGet(
@@ -603,12 +608,12 @@ RequestCopyFromBuffer(
     WDFMEMORY memory;
     size_t    outputBufferLength;
 
-    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_READ, "--> %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_READ, ("--> %s\n", __FUNCTION__));
 
     status = WdfRequestRetrieveOutputMemory(Request, &memory);
     if (!NT_SUCCESS(status))
     {
-        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_READ, "<-- %s\n", __FUNCTION__);
+        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_READ, ("<-- %s\n", __FUNCTION__));
         return status;
     }
 
@@ -617,8 +622,8 @@ RequestCopyFromBuffer(
     {
         status = STATUS_INVALID_BUFFER_SIZE;
         TraceEvents(TRACE_LEVEL_ERROR, DBG_READ,
-                    "RequestCopyFromBuffer: buffer too small. Size %d, expect %d\n",
-                    (int)outputBufferLength, (int)NumBytesToCopyFrom);
+                    ("RequestCopyFromBuffer: buffer too small. Size %d, expect %d\n",
+                    (int)outputBufferLength, (int)NumBytesToCopyFrom));
         return status;
     }
 
@@ -629,12 +634,12 @@ RequestCopyFromBuffer(
     if (!NT_SUCCESS(status))
     {
         TraceEvents(TRACE_LEVEL_ERROR, DBG_READ,
-                    "WdfMemoryCopyFromBuffer failed 0x%x\n", status);
+                    ("WdfMemoryCopyFromBuffer failed 0x%x\n", status));
         return status;
     }
 
     WdfRequestSetInformation(Request, NumBytesToCopyFrom);
 
-    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_READ, "<-- %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_READ, ("<-- %s\n", __FUNCTION__));
     return status;
 }

@@ -37,13 +37,13 @@ DriverEntry(
     WDF_OBJECT_ATTRIBUTES attributes;
     WDFDRIVER             driver;
 
-#if (NTDDI_VERSION > NTDDI_WIN7)
+#if 0 //(NTDDI_VERSION > NTDDI_WIN7)
     ExInitializeDriverRuntime(DrvRtPoolNxOptIn);
 #endif
     WPP_INIT_TRACING(DriverObject, RegistryPath);
 
     TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT,
-        "Virtio-input driver started...built on %s %s\n", __DATE__, __TIME__);
+        ("Virtio-input driver started...built on %s %s\n", __DATE__, __TIME__));
 
     WDF_DRIVER_CONFIG_INIT(&config,VIOInputEvtDeviceAdd);
     config.DriverPoolTag  = VIOINPUT_DRIVER_MEMORY_TAG;
@@ -60,12 +60,12 @@ DriverEntry(
     if (!NT_SUCCESS(status))
     {
         TraceEvents(TRACE_LEVEL_ERROR, DBG_INIT,
-           "WdfDriverCreate failed - 0x%x\n", status);
+           ("WdfDriverCreate failed - 0x%x\n", status));
         WPP_CLEANUP(DriverObject);
         return status;
     }
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_PNP, "<-- %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_PNP, ("<-- %s\n", __FUNCTION__));
     return status;
 }
 
@@ -75,7 +75,7 @@ VIOInputEvtDriverContextCleanup(
 {
     PAGED_CODE();
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_PNP, "<--> %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_PNP, ("<--> %s\n", __FUNCTION__));
 
     WPP_CLEANUP(WdfDriverWdmGetDriverObject(Driver));
 }

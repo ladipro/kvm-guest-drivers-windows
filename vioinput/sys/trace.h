@@ -52,9 +52,9 @@ extern int driverDebugLevel;
 #define DBG_QUEUEING            0x00000800
 #define DBG_HW_ACCESS           0x00001000
 
-#define TraceEvents(level, flags, message, ...) \
+#define TraceEvents(level, flags, line) \
 if (level > driverDebugLevel || !bDebugPrint || !(driverDebugFlags & flags)) {} \
-else VirtioDebugPrintProc(message, __VA_ARGS__)
+else VirtioDebugPrintProc line
 
 void InitializeDebugPrints(IN PDRIVER_OBJECT  DriverObject, PUNICODE_STRING RegistryPath);
 

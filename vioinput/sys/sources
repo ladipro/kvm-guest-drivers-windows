@@ -1,0 +1,42 @@
+TARGETNAME=vioinput
+TARGETTYPE=DRIVER
+TARGETPATH=obj
+
+KMDF_VERSION_MAJOR=1
+
+
+TARGETLIBS=$(TARGETLIBS) $(DDK_LIB_PATH)\ntstrsafe.lib \
+                         $(DDK_LIB_PATH)\wdmsec.lib \
+                         ..\..\VirtIO\$(O)\virtiolib.lib \
+                         ..\..\VirtIO\WDF\$(O)\virtiolib_wdf.lib
+
+C_DEFINES=$(C_DEFINES) -D_WIN2K_COMPAT_SLIST_USAGE
+
+INCLUDES=$(INCLUDES);..;..\..\VirtIO;..\..\VirtIO\WDF
+# INCLUDES=$(INCLUDES);C:\WinDDK\6001.18002\inc\wdf\kmdf\1.7
+
+SOURCES= vioinput.rc \
+         Array.c \
+         Device.c \
+         Driver.c \
+         Hid.c \
+         HidConsumer.c \
+         HidJoystick.c \
+         HidKeyboard.c \
+         HidMouse.c \
+         HidTablet.c \
+         IsrDpc.c \
+         KeyMap.c \
+         utils.c
+
+TARGET_DESTINATION=wdf
+
+INF_NAME=vioinput
+INF_TARGET=$(OBJ_PATH)\$(O)\$(TARGETNAME).inf
+
+NTTARGETFILE1=$(INF_TARGET)
+PASS1_BINPLACE=$(NTTARGETFILE1)
+
+# Temporarily excuse usage of serviceability impairing macros in code...
+ALLOW_DATE_TIME=1
+

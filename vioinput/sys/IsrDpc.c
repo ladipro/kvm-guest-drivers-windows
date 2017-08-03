@@ -23,7 +23,7 @@ static
 VOID
 VIOInputEnableInterrupt(PINPUT_DEVICE pContext)
 {
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INTERRUPT, "--> %s enable\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INTERRUPT, ("--> %s enable\n", __FUNCTION__));
 
     if (!pContext)
         return;
@@ -39,14 +39,14 @@ VIOInputEnableInterrupt(PINPUT_DEVICE pContext)
         virtqueue_kick(pContext->StatusQ);
     }
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INTERRUPT, "<-- %s enable\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INTERRUPT, ("<-- %s enable\n", __FUNCTION__));
 }
 
 static
 VOID
 VIOInputDisableInterrupt(PINPUT_DEVICE pContext)
 {
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INTERRUPT, "--> %s disable\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INTERRUPT, ("--> %s disable\n", __FUNCTION__));
 
     if (!pContext)
         return;
@@ -60,7 +60,7 @@ VIOInputDisableInterrupt(PINPUT_DEVICE pContext)
         virtqueue_disable_cb(pContext->StatusQ);
     }
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INTERRUPT, "<-- %s disable\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INTERRUPT, ("<-- %s disable\n", __FUNCTION__));
 }
 
 NTSTATUS
@@ -70,9 +70,9 @@ VIOInputInterruptEnable(
 {
     UNREFERENCED_PARAMETER(AssociatedDevice);
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INTERRUPT, "--> %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INTERRUPT, ("--> %s\n", __FUNCTION__));
     VIOInputEnableInterrupt(GetDeviceContext(WdfInterruptGetDevice(Interrupt)));
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INTERRUPT, "<-- %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INTERRUPT, ("<-- %s\n", __FUNCTION__));
     return STATUS_SUCCESS;
 }
 
@@ -83,9 +83,9 @@ VIOInputInterruptDisable(
 {
     UNREFERENCED_PARAMETER(AssociatedDevice);
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INTERRUPT, "--> %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INTERRUPT, ("--> %s\n", __FUNCTION__));
     VIOInputDisableInterrupt(GetDeviceContext(WdfInterruptGetDevice(Interrupt)));
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INTERRUPT, "<-- %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INTERRUPT, ("<-- %s\n", __FUNCTION__));
     return STATUS_SUCCESS;
 }
 
@@ -98,7 +98,7 @@ VIOInputInterruptIsr(
     WDF_INTERRUPT_INFO info;
     BOOLEAN serviced;
 
-    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_INTERRUPT, "--> %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_INTERRUPT, ("--> %s\n", __FUNCTION__));
 
     WDF_INTERRUPT_INFO_INIT(&info);
     WdfInterruptGetInfo(Interrupt, &info);
@@ -115,7 +115,7 @@ VIOInputInterruptIsr(
         serviced = FALSE;
     }
 
-    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_INTERRUPT, "<-- %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_INTERRUPT, ("<-- %s\n", __FUNCTION__));
     return serviced;
 }
 
@@ -130,7 +130,7 @@ VIOInputQueuesInterruptDpc(
     PVIRTIO_INPUT_EVENT_WITH_REQUEST pEventReq;
     UINT len;
 
-    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_DPC, "--> %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_DPC, ("--> %s\n", __FUNCTION__));
 
     WdfSpinLockAcquire(pContext->EventQLock);
     while ((pEvent = virtqueue_get_buf(pContext->EventQ, &len)) != NULL)
@@ -157,5 +157,5 @@ VIOInputQueuesInterruptDpc(
     }
     WdfSpinLockRelease(pContext->StatusQLock);
 
-    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_DPC, "<-- %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_DPC, ("<-- %s\n", __FUNCTION__));
 }

@@ -47,12 +47,12 @@ VIOInputInitInterruptHandling(
     NTSTATUS             status = STATUS_SUCCESS;
     PINPUT_DEVICE        pContext = GetDeviceContext(hDevice);
 
-    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_HW_ACCESS, "--> %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_HW_ACCESS, ("--> %s\n", __FUNCTION__));
 
     if (!NT_SUCCESS(status))
     {
         TraceEvents(TRACE_LEVEL_ERROR, DBG_HW_ACCESS,
-            "Failed to create control queue interrupt: %x\n", status);
+            ("Failed to create control queue interrupt: %x\n", status));
         return status;
     }
 
@@ -68,11 +68,11 @@ VIOInputInitInterruptHandling(
     if (!NT_SUCCESS(status))
     {
         TraceEvents(TRACE_LEVEL_ERROR, DBG_HW_ACCESS,
-            "Failed to create general queue interrupt: %x\n", status);
+            ("Failed to create general queue interrupt: %x\n", status));
         return status;
     }
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_HW_ACCESS, "<-- %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_HW_ACCESS, ("<-- %s\n", __FUNCTION__));
     return status;
 }
 
@@ -92,7 +92,7 @@ VIOInputEvtDeviceAdd(
 
     PAGED_CODE();
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_PNP, "--> %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_PNP, ("--> %s\n", __FUNCTION__));
 
     WDF_PNPPOWER_EVENT_CALLBACKS_INIT(&PnpPowerCallbacks);
     PnpPowerCallbacks.EvtDevicePrepareHardware = VIOInputEvtDevicePrepareHardware;
@@ -106,14 +106,14 @@ VIOInputEvtDeviceAdd(
     status = WdfDeviceCreate(&DeviceInit, &Attributes, &hDevice);
     if (!NT_SUCCESS(status))
     {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_PNP, "WdfDeviceCreate failed - 0x%x\n", status);
+        TraceEvents(TRACE_LEVEL_ERROR, DBG_PNP, ("WdfDeviceCreate failed - 0x%x\n", status));
         return status;
     }
 
     status = VIOInputInitInterruptHandling(hDevice);
     if (!NT_SUCCESS(status))
     {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_PNP, "VIOInputInitInterruptHandling failed - 0x%x\n", status);
+        TraceEvents(TRACE_LEVEL_ERROR, DBG_PNP, ("VIOInputInitInterruptHandling failed - 0x%x\n", status));
     }
 
     status = WdfDeviceCreateDeviceInterface(
@@ -122,7 +122,7 @@ VIOInputEvtDeviceAdd(
         NULL);
     if (!NT_SUCCESS(status))
     {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_PNP, "WdfDeviceCreateDeviceInterface failed - 0x%x\n", status);
+        TraceEvents(TRACE_LEVEL_ERROR, DBG_PNP, ("WdfDeviceCreateDeviceInterface failed - 0x%x\n", status));
         return status;
     }
 
@@ -141,7 +141,7 @@ VIOInputEvtDeviceAdd(
         &pContext->IoctlQueue);
     if (!NT_SUCCESS(status))
     {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_PNP, "WdfIoQueueCreate failed - 0x%x\n", status);
+        TraceEvents(TRACE_LEVEL_ERROR, DBG_PNP, ("WdfIoQueueCreate failed - 0x%x\n", status));
         return status;
     }
 
@@ -156,7 +156,7 @@ VIOInputEvtDeviceAdd(
         &pContext->HidQueue);
     if (!NT_SUCCESS(status))
     {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_PNP, "WdfIoQueueCreate failed - 0x%x\n", status);
+        TraceEvents(TRACE_LEVEL_ERROR, DBG_PNP, ("WdfIoQueueCreate failed - 0x%x\n", status));
         return status;
     }
 
@@ -167,7 +167,7 @@ VIOInputEvtDeviceAdd(
         &pContext->EventQLock);
     if (!NT_SUCCESS(status))
     {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_PNP, "WdfSpinLockCreate failed - 0x%x\n", status);
+        TraceEvents(TRACE_LEVEL_ERROR, DBG_PNP, ("WdfSpinLockCreate failed - 0x%x\n", status));
         return status;
     }
     status = WdfSpinLockCreate(
@@ -175,7 +175,7 @@ VIOInputEvtDeviceAdd(
         &pContext->StatusQLock);
     if (!NT_SUCCESS(status))
     {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_PNP, "WdfSpinLockCreate failed - 0x%x\n", status);
+        TraceEvents(TRACE_LEVEL_ERROR, DBG_PNP, ("WdfSpinLockCreate failed - 0x%x\n", status));
         return status;
     }
 
@@ -185,7 +185,7 @@ VIOInputEvtDeviceAdd(
     pContext->HidDeviceAttributes.ProductID = HIDMINI_PID;
     pContext->HidDeviceAttributes.VersionNumber = HIDMINI_VERSION;
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_HW_ACCESS, "<-- %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_HW_ACCESS, ("<-- %s\n", __FUNCTION__));
     return status;
 }
 
@@ -202,7 +202,7 @@ VIOInputEvtDevicePrepareHardware(
     UNREFERENCED_PARAMETER(ResourcesRaw);
     PAGED_CODE();
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_HW_ACCESS, "--> %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_HW_ACCESS, ("--> %s\n", __FUNCTION__));
 
     status = VirtIOWdfInitialize(
         &pContext->VDevice,
@@ -213,7 +213,7 @@ VIOInputEvtDevicePrepareHardware(
         2 /* max queues */);
     if (!NT_SUCCESS(status))
     {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_HW_ACCESS, "VirtIOWdfInitialize failed with %x\n", status);
+        TraceEvents(TRACE_LEVEL_ERROR, DBG_HW_ACCESS, ("VirtIOWdfInitialize failed with %x\n", status));
         return status;
     }
 
@@ -247,7 +247,7 @@ VIOInputEvtDevicePrepareHardware(
         }
     }
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_HW_ACCESS, "<-- %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_HW_ACCESS, ("<-- %s\n", __FUNCTION__));
     return status;
 }
 
@@ -267,7 +267,7 @@ VIOInputCreateChildPdo(
     DECLARE_CONST_UNICODE_STRING(deviceId, L"VIOINPUT\\REV_01");
     DECLARE_UNICODE_STRING_SIZE(buffer, 32);
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_PNP, "--> %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_PNP, ("--> %s\n", __FUNCTION__));
 
     pDeviceInit = WdfPdoInitAllocate(hDevice);
     if (pDeviceInit == NULL)
@@ -342,7 +342,7 @@ Exit:
         WdfDeviceInitFree(pDeviceInit);
     }
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_PNP, "<-- %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_PNP, ("<-- %s\n", __FUNCTION__));
     return status;
 }
 
@@ -358,7 +358,7 @@ VIOInputEvtDeviceReleaseHardware(
     UNREFERENCED_PARAMETER(ResourcesTranslated);
     PAGED_CODE();
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_HW_ACCESS, "--> %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_HW_ACCESS, ("--> %s\n", __FUNCTION__));
 
     VirtIOWdfShutdown(&pContext->VDevice);
 
@@ -376,7 +376,7 @@ VIOInputEvtDeviceReleaseHardware(
 
     VIOInputFree(&pContext->HidReportDescriptor);
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_HW_ACCESS, "<-- %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_HW_ACCESS, ("<-- %s\n", __FUNCTION__));
     return STATUS_SUCCESS;
 }
 
@@ -399,7 +399,7 @@ VIOInputInitAllQueues(
     params[1].Interrupt = pContext->QueuesInterrupt;
     params[1].szName = "status";
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "--> %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("--> %s\n", __FUNCTION__));
 
     status = VirtIOWdfInitQueues(&pContext->VDevice, 2, vqs, params);
     if (NT_SUCCESS(status))
@@ -409,10 +409,10 @@ VIOInputInitAllQueues(
     }
     else
     {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_INIT, "VirtIOWdfInitQueues returned %x\n", status);
+        TraceEvents(TRACE_LEVEL_ERROR, DBG_INIT, ("VirtIOWdfInitQueues returned %x\n", status));
     }
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "<-- %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("<-- %s\n", __FUNCTION__));
     return status;
 }
 
@@ -421,11 +421,11 @@ VIOInputShutDownAllQueues(IN WDFOBJECT WdfDevice)
 {
     PINPUT_DEVICE pContext = GetDeviceContext(WdfDevice);
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "--> %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("--> %s\n", __FUNCTION__));
 
     VirtIOWdfDestroyQueues(&pContext->VDevice);
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "<-- %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("<-- %s\n", __FUNCTION__));
 }
 
 NTSTATUS
@@ -436,7 +436,7 @@ VIOInputFillQueue(
     NTSTATUS status = STATUS_SUCCESS;
     PVIRTIO_INPUT_EVENT buf = NULL;
 
-    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_INIT, "--> %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_INIT, ("--> %s\n", __FUNCTION__));
 
     for (;;)
     {
@@ -447,7 +447,7 @@ VIOInputFillQueue(
             );
         if (buf == NULL)
         {
-            TraceEvents(TRACE_LEVEL_ERROR, DBG_INIT, "VIRTIO_INPUT_EVENT alloc failed\n");
+            TraceEvents(TRACE_LEVEL_ERROR, DBG_INIT, ("VIRTIO_INPUT_EVENT alloc failed\n"));
             return STATUS_INSUFFICIENT_RESOURCES;
         }
 
@@ -460,7 +460,7 @@ VIOInputFillQueue(
             break;
         }
     }
-    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_INIT, "<-- %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_INIT, ("<-- %s\n", __FUNCTION__));
     return STATUS_SUCCESS;
 }
 
@@ -473,7 +473,7 @@ VIOInputAddBuf(
     NTSTATUS  status = STATUS_SUCCESS;
     struct VirtIOBufferDescriptor sg;
 
-    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_QUEUEING, "--> %s  buf = %p\n", __FUNCTION__, buf);
+    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_QUEUEING, ("--> %s  buf = %p\n", __FUNCTION__, buf));
     if (buf == NULL)
     {
         ASSERT(0);
@@ -490,12 +490,12 @@ VIOInputAddBuf(
 
     if (0 > virtqueue_add_buf(vq, &sg, (out ? 1 : 0), (out ? 0 : 1), buf, NULL, 0))
     {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_QUEUEING, "<-- %s cannot add_buf\n", __FUNCTION__);
+        TraceEvents(TRACE_LEVEL_ERROR, DBG_QUEUEING, ("<-- %s cannot add_buf\n", __FUNCTION__));
         status = STATUS_INSUFFICIENT_RESOURCES;
     }
 
     virtqueue_kick(vq);
-    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_QUEUEING, "<-- %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_QUEUEING, ("<-- %s\n", __FUNCTION__));
     return status;
 }
 
@@ -525,7 +525,7 @@ VIOInputEvtDeviceD0Entry(
 
     UNREFERENCED_PARAMETER(PreviousState);
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "--> %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("--> %s\n", __FUNCTION__));
 
     status = VIOInputInitAllQueues(Device);
     if (NT_SUCCESS(status))
@@ -538,7 +538,7 @@ VIOInputEvtDeviceD0Entry(
         VirtIOWdfSetDriverFailed(&pContext->VDevice);
     }
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "<-- %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("<-- %s\n", __FUNCTION__));
 
     return status;
 }
@@ -551,8 +551,8 @@ VIOInputEvtDeviceD0Exit(
     PINPUT_DEVICE pContext = GetDeviceContext(Device);
     PVIRTIO_INPUT_EVENT buf;
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_PNP,"--> %s TargetState: %d\n",
-        __FUNCTION__, TargetState);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_PNP, ("--> %s TargetState: %d\n",
+        __FUNCTION__, TargetState));
 
     PAGED_CODE();
 
@@ -565,7 +565,7 @@ VIOInputEvtDeviceD0Exit(
     }
     VIOInputShutDownAllQueues(Device);
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_PNP, "<-- %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_PNP, ("<-- %s\n", __FUNCTION__));
 
     return STATUS_SUCCESS;
 }

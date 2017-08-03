@@ -50,7 +50,7 @@ HIDTabletEventToReport(
     PUSHORT pAxisReport;
     UCHAR uBits;
 
-    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_READ, "--> %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_READ, ("--> %s\n", __FUNCTION__));
 
     pReport[HID_REPORT_ID_OFFSET] = pClass->uReportID;
     switch (pEvent->type)
@@ -106,7 +106,7 @@ HIDTabletEventToReport(
         break;
     }
 
-    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_READ, "<-- %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_VERBOSE, DBG_READ, ("<-- %s\n", __FUNCTION__));
     return STATUS_SUCCESS;
 }
 
@@ -122,7 +122,7 @@ HIDTabletProbe(
     UCHAR i, uValue;
     ULONG uAxisCode, uNumOfAbsAxes = 0;
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "--> %s\n", __FUNCTION__);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("--> %s\n", __FUNCTION__));
 
     // we expect to see two absolute axes, X and Y
     for (i = 0; i < pAxes->size; i++)
@@ -145,7 +145,7 @@ HIDTabletProbe(
 
     if (uNumOfAbsAxes != 2)
     {
-        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "Tablet axes not found\n");
+        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("Tablet axes not found\n"));
         goto Exit;
     }
 
@@ -218,8 +218,8 @@ HIDTabletProbe(
         struct virtio_input_absinfo AbsInfo;
         GetAbsAxisInfo(pContext, uAxisCode, &AbsInfo);
 
-        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "Got abs axis %d, min %d, max %d\n",
-                    uAxisCode, AbsInfo.min, AbsInfo.max);
+        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("Got abs axis %d, min %d, max %d\n",
+                    uAxisCode, AbsInfo.min, AbsInfo.max));
 
         HIDAppend2(pHidDesc, HID_TAG_LOGICAL_MINIMUM, AbsInfo.min);
         HIDAppend2(pHidDesc, HID_TAG_LOGICAL_MAXIMUM, AbsInfo.max);
@@ -241,7 +241,7 @@ HIDTabletProbe(
     HIDAppend1(pHidDesc, HID_TAG_END_COLLECTION);
     HIDAppend1(pHidDesc, HID_TAG_END_COLLECTION);
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "Created HID tablet report descriptor\n");
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("Created HID tablet report descriptor\n"));
 
     // calculate the tablet HID report size
     pTabletDesc->Common.cbHidReportSize =
@@ -258,6 +258,6 @@ Exit:
         VIOInputFree(&pTabletDesc);
     }
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "<-- %s (%08x)\n", __FUNCTION__, status);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, ("<-- %s (%08x)\n", __FUNCTION__, status));
     return status;
 }
