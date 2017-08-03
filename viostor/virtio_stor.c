@@ -605,6 +605,12 @@ VirtIoStartIo(
 
     adaptExt = (PADAPTER_EXTENSION)DeviceExtension;
 
+    if (Srb->Lun) {
+        Srb->SrbStatus = SRB_STATUS_NO_DEVICE;
+        CompleteSRB(DeviceExtension, Srb);
+        return TRUE;
+    }
+
     switch (Srb->Function) {
         case SRB_FUNCTION_EXECUTE_SCSI:
         case SRB_FUNCTION_IO_CONTROL: {
