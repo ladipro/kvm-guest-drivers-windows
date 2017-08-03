@@ -30,12 +30,12 @@
 
 #define READ_PORT_OR_REGISTER(address, width)                       \
     (address & ~PORT_MASK) ?                                        \
-        READ_REGISTER_##width((_VOLATILE width *)address) :         \
+        READ_REGISTER_##width((width *)address) :         \
         READ_PORT_##width((width *)address)
 
 #define WRITE_PORT_OR_REGISTER(address, width, value)               \
     (address & ~PORT_MASK) ?                                        \
-        WRITE_REGISTER_##width((_VOLATILE width *)address, value) : \
+        WRITE_REGISTER_##width((width *)address, value) : \
         WRITE_PORT_##width((width *)address, value)
 
 u8 ReadVirtIODeviceByte(ULONG_PTR ulRegister)

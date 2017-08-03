@@ -40,9 +40,10 @@ static void free_pages_exact(void *context, void *virt, size_t size)
 
 static ULONGLONG virt_to_phys(void *context, void *address)
 {
+    PHYSICAL_ADDRESS pa;
     UNREFERENCED_PARAMETER(context);
 
-    PHYSICAL_ADDRESS pa = MmGetPhysicalAddress(address);
+    pa = MmGetPhysicalAddress(address);
     return pa.QuadPart;
 }
 

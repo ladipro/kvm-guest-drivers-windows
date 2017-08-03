@@ -1,0 +1,15 @@
+TARGETNAME=virtiolib_wdf
+TARGETTYPE=DRIVER_LIBRARY
+TARGETPATH=obj
+
+KMDF_VERSION_MAJOR=1
+
+MSC_WARNING_LEVEL=/W3 /WX
+INCLUDES=$(INCLUDES);..
+
+SOURCES=Callbacks.c  \
+        MemPortIO.c  \
+        PCI.c  \
+        VirtIOWdf.c
+        
+TARGET_DESTINATION=wdf
