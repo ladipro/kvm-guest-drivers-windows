@@ -26,13 +26,16 @@
 #include <hidport.h>
 #include "pdo.h"
 
-static DRIVER_ADD_DEVICE HidPassthroughAddDevice;
-static DRIVER_UNLOAD     HidPassthroughUnload;
+//static DRIVER_ADD_DEVICE HidPassthroughAddDevice;
+//static DRIVER_UNLOAD     HidPassthroughUnload;
 
-static _Dispatch_type_(IRP_MJ_POWER) DRIVER_DISPATCH HidPassthroughDispatchPower;
-static _Dispatch_type_(IRP_MJ_OTHER) DRIVER_DISPATCH HidPassthroughDispatch;
+//static _Dispatch_type_(IRP_MJ_POWER) DRIVER_DISPATCH HidPassthroughDispatchPower;
+//static _Dispatch_type_(IRP_MJ_OTHER) DRIVER_DISPATCH HidPassthroughDispatch;
 
-DRIVER_INITIALIZE DriverEntry;
+//DRIVER_INITIALIZE DriverEntry;
+
+#define _In_
+#define _Inout_
 
 static NTSTATUS
 HidPassthroughAddDevice(_In_ PDRIVER_OBJECT DriverObject,
