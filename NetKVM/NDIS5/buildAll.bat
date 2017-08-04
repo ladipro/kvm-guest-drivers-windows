@@ -17,7 +17,8 @@
 
 setlocal
 
-if "%DDKVER%"=="" set DDKVER=3790.1830
+rem if "%DDKVER%"=="" set DDKVER=3790.1830
+if "%DDKVER%"=="" set DDKVER=6001.18002
 set BUILDROOT=C:\WINDDK\%DDKVER%
 set X64ENV=x64
 if "%DDKVER%"=="6000" set X64ENV=amd64
@@ -61,7 +62,7 @@ goto :eof
 :W2K
 setlocal
 pushd %BUILDROOT%
-call %BUILDROOT%\bin\setenv.bat %BUILDROOT% fre W2K no_prefast
+call %BUILDROOT%\bin\setenv.bat %BUILDROOT% fre W2K
 popd
 call :preparebuild
 pushd ..\..\virtio
