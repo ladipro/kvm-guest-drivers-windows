@@ -234,10 +234,6 @@ VIOInputEvtDevicePrepareHardware(
     }
 
     hostFeatures = VirtIOWdfGetDeviceFeatures(&pContext->VDevice);
-    if (virtio_is_feature_enabled(hostFeatures, VIRTIO_F_VERSION_1))
-    {
-        virtio_feature_enable(guestFeatures, VIRTIO_F_VERSION_1);
-    }
     if (virtio_is_feature_enabled(hostFeatures, VIRTIO_F_ANY_LAYOUT))
     {
         virtio_feature_enable(guestFeatures, VIRTIO_F_ANY_LAYOUT);
@@ -408,11 +404,9 @@ VIOInputInitAllQueues(
     VIRTIO_WDF_QUEUE_PARAM params[2];
 
     // event
-    params[0].bEnableInterruptSuppression = false;
     params[0].Interrupt = pContext->QueuesInterrupt;
 
     // status
-    params[1].bEnableInterruptSuppression = false;
     params[1].Interrupt = pContext->QueuesInterrupt;
 
     TraceEvents(TRACE_LEVEL_INFORMATION, DBG_INIT, "--> %s\n", __FUNCTION__);
