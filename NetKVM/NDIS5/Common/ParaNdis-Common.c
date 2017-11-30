@@ -125,7 +125,6 @@ typedef struct _tagConfigurationEntries
     tConfigurationEntry PriorityVlanTagging;
     tConfigurationEntry VlanId;
     tConfigurationEntry UseMergeableBuffers;
-    tConfigurationEntry PublishIndices;
     tConfigurationEntry MTU;
     tConfigurationEntry NumberOfHandledRXPackersInDPC;
     tConfigurationEntry Indirect;
@@ -164,7 +163,6 @@ static const tConfigurationEntries defaultConfiguration =
     { "*PriorityVLANTag", 3, 0, 3},
     { "VlanId", 0, 0, MAX_VLAN_ID},
     { "MergeableBuf", 1, 0, 1},
-    { "PublishIndices", 1, 0, 1},
     { "MTU", 1500, 500, 65500},
     { "NumberOfHandledRXPackersInDPC", MAX_RX_LOOPS, 1, 10000},
     { "Indirect", 0, 0, 2},
@@ -315,7 +313,6 @@ static void ReadNicConfiguration(PARANDIS_ADAPTER *pContext, PUCHAR *ppNewMACAdd
             GetConfigurationEntry(cfg, &pConfiguration->PriorityVlanTagging);
             GetConfigurationEntry(cfg, &pConfiguration->VlanId);
             GetConfigurationEntry(cfg, &pConfiguration->UseMergeableBuffers);
-            GetConfigurationEntry(cfg, &pConfiguration->PublishIndices);
             GetConfigurationEntry(cfg, &pConfiguration->MTU);
             GetConfigurationEntry(cfg, &pConfiguration->NumberOfHandledRXPackersInDPC);
             GetConfigurationEntry(cfg, &pConfiguration->Indirect);
@@ -371,7 +368,6 @@ static void ReadNicConfiguration(PARANDIS_ADAPTER *pContext, PUCHAR *ppNewMACAdd
             pContext->ulPriorityVlanSetting = pConfiguration->PriorityVlanTagging.ulValue;
             pContext->VlanId = pConfiguration->VlanId.ulValue & 0xfff;
             pContext->bUseMergedBuffers = pConfiguration->UseMergeableBuffers.ulValue != 0;
-            pContext->bDoPublishIndices = pConfiguration->PublishIndices.ulValue != 0;
             pContext->MaxPacketSize.nMaxDataSize = pConfiguration->MTU.ulValue;
             pContext->bUseIndirect = pConfiguration->Indirect.ulValue != 0;
             if (!pContext->bDoSupportPriority)
@@ -734,7 +730,6 @@ NDIS_STATUS ParaNdis_InitializeContext(
         {
             // virtio 1.0 always uses the extended header
             pContext->nVirtioHeaderSize = sizeof(virtio_net_hdr_ext);
-            VirtIODeviceEnableGuestFeature(pContext, VIRTIO_F_VERSION_1);
         }
         else
         {
@@ -813,16 +808,6 @@ NDIS_STATUS ParaNdis_InitializeContext(
                 pContext->CurrentMacAddress[3],
                 pContext->CurrentMacAddress[4],
                 pContext->CurrentMacAddress[5]));
-        }
-        if (pContext->bDoPublishIndices)
-            pContext->bDoPublishIndices = VirtIODeviceGetHostFeature(pContext, VIRTIO_RING_F_EVENT_IDX) != 0;
-        if (pContext->bDoPublishIndices)
-        {
-            VirtIODeviceEnableGuestFeature(pContext, VIRTIO_RING_F_EVENT_IDX);
-        }
-        else
-        {
-            pContext->bDoPublishIndices = FALSE;
         }
         if (VirtIODeviceGetHostFeature(pContext, VIRTIO_NET_F_CTRL_VQ)) {
             pContext->bHasControlQueue = TRUE;
@@ -1106,7 +1091,7 @@ static int PrepareReceiveBuffers(PARANDIS_ADAPTER *pContext)
 static NDIS_STATUS FindNetQueues(PARANDIS_ADAPTER *pContext)
 {
     struct virtqueue *queues[3];
-    unsigned i, nvqs = pContext->bHasControlQueue ? 3 : 2;
+    unsigned nvqs = pContext->bHasControlQueue ? 3 : 2;
     NTSTATUS status;
 
     // We work with two or three virtqueues, 0 - receive, 1 - send, 2 - control
@@ -1117,13 +1102,6 @@ static NDIS_STATUS FindNetQueues(PARANDIS_ADAPTER *pContext)
     if (!NT_SUCCESS(status)) {
        DPrintf(0, ("[%s] virtio_find_queues failed with %x\n", __FUNCTION__, status));
        return NTStatusToNdisStatus(status);
-    }
-
-    // set interrupt suppression flags
-    for (i = 0; i < nvqs; i++) {
-        virtio_set_queue_event_suppression(
-          queues[i],
-          pContext->bDoPublishIndices);
     }
 
     pContext->NetReceiveQueue = queues[0];
@@ -2748,12 +2726,8 @@ NDIS_STATUS ParaNdis_PowerOn(PARANDIS_ADAPTER *pContext)
 
     if (pContext->bUseMergedBuffers)
         VirtIODeviceEnableGuestFeature(pContext, VIRTIO_NET_F_MRG_RXBUF);
-    if (pContext->bDoPublishIndices)
-        VirtIODeviceEnableGuestFeature(pContext, VIRTIO_RING_F_EVENT_IDX);
     if (pContext->bDoGuestChecksumOnReceive)
         VirtIODeviceEnableGuestFeature(pContext, VIRTIO_NET_F_GUEST_CSUM);
-    if (VirtIODeviceGetHostFeature(pContext, VIRTIO_F_VERSION_1))
-        VirtIODeviceEnableGuestFeature(pContext, VIRTIO_F_VERSION_1);
     if (VirtIODeviceGetHostFeature(pContext, VIRTIO_F_ANY_LAYOUT))
         VirtIODeviceEnableGuestFeature(pContext, VIRTIO_F_ANY_LAYOUT);
 
