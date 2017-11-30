@@ -534,9 +534,7 @@ VirtIoPassiveInitializeRoutine (
 
 static BOOLEAN InitializeVirtualQueues(PADAPTER_EXTENSION adaptExt)
 {
-    ULONG index;
     NTSTATUS status;
-    BOOLEAN useEventIndex = CHECKBIT(adaptExt->features, VIRTIO_RING_F_EVENT_IDX);
     ULONG numQueues = adaptExt->num_queues;
 
     RhelDbgPrint(TRACE_LEVEL_FATAL, ("InitializeVirtualQueues numQueues %d\n", numQueues));
@@ -549,11 +547,6 @@ static BOOLEAN InitializeVirtualQueues(PADAPTER_EXTENSION adaptExt)
         return FALSE;
     }
 
-    for (index = 0; index < numQueues; index++) {
-        virtio_set_queue_event_suppression(
-            adaptExt->vq[index],
-            useEventIndex);
-    }
     return TRUE;
 }
 
@@ -575,16 +568,8 @@ VirtIoHwInitialize(
 
     adaptExt = (PADAPTER_EXTENSION)DeviceExtension;
 
-    if (CHECKBIT(adaptExt->features, VIRTIO_F_VERSION_1)) {
-        guestFeatures |= (1ULL << VIRTIO_F_VERSION_1);
-    }
-
     if (CHECKBIT(adaptExt->features, VIRTIO_F_ANY_LAYOUT)) {
         guestFeatures |= (1ULL << VIRTIO_F_ANY_LAYOUT);
-    }
-
-    if (CHECKBIT(adaptExt->features, VIRTIO_RING_F_EVENT_IDX)) {
-        guestFeatures |= (1ULL << VIRTIO_RING_F_EVENT_IDX);
     }
 
     if (CHECKBIT(adaptExt->features, VIRTIO_BLK_F_FLUSH)) {
