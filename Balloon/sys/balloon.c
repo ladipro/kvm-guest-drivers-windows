@@ -54,23 +54,16 @@ BalloonInit(
     WdfObjectAcquireLock(WdfDevice);
 
     // inflate
-    params[0].bEnableInterruptSuppression = false;
     params[0].Interrupt = devCtx->WdfInterrupt;
 
     // deflate
-    params[1].bEnableInterruptSuppression = false;
     params[1].Interrupt = devCtx->WdfInterrupt;
 
     // stats
-    params[2].bEnableInterruptSuppression = false;
     params[2].Interrupt = devCtx->WdfInterrupt;
 
     u64HostFeatures = VirtIOWdfGetDeviceFeatures(&devCtx->VDevice);
 
-    if (virtio_is_feature_enabled(u64HostFeatures, VIRTIO_F_VERSION_1))
-    {
-        virtio_feature_enable(u64GuestFeatures, VIRTIO_F_VERSION_1);
-    }
     if (virtio_is_feature_enabled(u64HostFeatures, VIRTIO_F_ANY_LAYOUT))
     {
         virtio_feature_enable(u64GuestFeatures, VIRTIO_F_ANY_LAYOUT);
