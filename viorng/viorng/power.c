@@ -102,11 +102,6 @@ NTSTATUS VirtRngEvtDeviceD0Entry(IN WDFDEVICE Device,
     PAGED_CODE();
 
     u64HostFeatures = VirtIOWdfGetDeviceFeatures(&context->VDevice);
-
-    if (virtio_is_feature_enabled(u64HostFeatures, VIRTIO_F_VERSION_1))
-    {
-        virtio_feature_enable(u64GuestFeatures, VIRTIO_F_VERSION_1);
-    }
     if (virtio_is_feature_enabled(u64HostFeatures, VIRTIO_F_ANY_LAYOUT))
     {
         virtio_feature_enable(u64GuestFeatures, VIRTIO_F_ANY_LAYOUT);
@@ -115,7 +110,6 @@ NTSTATUS VirtRngEvtDeviceD0Entry(IN WDFDEVICE Device,
     status = VirtIOWdfSetDriverFeatures(&context->VDevice, u64GuestFeatures);
     if (NT_SUCCESS(status))
     {
-        param.bEnableInterruptSuppression = false;
         param.Interrupt = context->WdfInterrupt;
 
         status = VirtIOWdfInitQueues(&context->VDevice, 1, &context->VirtQueue, &param);
