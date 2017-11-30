@@ -554,9 +554,7 @@ EXIT_FN();
 
 static BOOLEAN InitializeVirtualQueues(PADAPTER_EXTENSION adaptExt, ULONG numQueues)
 {
-    ULONG index;
     NTSTATUS status;
-    BOOLEAN useEventIndex = CHECKBIT(adaptExt->features, VIRTIO_RING_F_EVENT_IDX);
 
     status = virtio_find_queues(
         &adaptExt->vdev,
@@ -567,11 +565,6 @@ static BOOLEAN InitializeVirtualQueues(PADAPTER_EXTENSION adaptExt, ULONG numQue
         return FALSE;
     }
 
-    for (index = 0; index < numQueues; index++) {
-        virtio_set_queue_event_suppression(
-            adaptExt->vq[index],
-            useEventIndex);
-    }
     return TRUE;
 }
 
@@ -610,14 +603,8 @@ VioScsiHwInitialize(
     MESSAGE_INTERRUPT_INFORMATION msi_info = { 0 };
     
 ENTER_FN();
-    if (CHECKBIT(adaptExt->features, VIRTIO_F_VERSION_1)) {
-        guestFeatures |= (1ULL << VIRTIO_F_VERSION_1);
-    }
     if (CHECKBIT(adaptExt->features, VIRTIO_F_ANY_LAYOUT)) {
         guestFeatures |= (1ULL << VIRTIO_F_ANY_LAYOUT);
-    }
-    if (CHECKBIT(adaptExt->features, VIRTIO_RING_F_EVENT_IDX)) {
-        guestFeatures |= (1ULL << VIRTIO_RING_F_EVENT_IDX);
     }
     if (CHECKBIT(adaptExt->features, VIRTIO_SCSI_F_CHANGE)) {
         guestFeatures |= (1ULL << VIRTIO_SCSI_F_CHANGE);
