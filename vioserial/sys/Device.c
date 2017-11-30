@@ -231,10 +231,6 @@ VIOSerialEvtDevicePrepareHardware(
 
     u64HostFeatures = VirtIOWdfGetDeviceFeatures(&pContext->VDevice);
 
-    if (virtio_is_feature_enabled(u64HostFeatures, VIRTIO_F_VERSION_1))
-    {
-        virtio_feature_enable(u64GuestFeatures, VIRTIO_F_VERSION_1);
-    }
     if (virtio_is_feature_enabled(u64HostFeatures, VIRTIO_F_ANY_LAYOUT))
     {
         virtio_feature_enable(u64GuestFeatures, VIRTIO_F_ANY_LAYOUT);
@@ -374,7 +370,6 @@ VIOSerialGetQueueParamCallback(
 {
     PPORTS_DEVICE pContext = CONTAINING_RECORD(pVDevice, PORTS_DEVICE, VDevice);
 
-    pQueueParam->bEnableInterruptSuppression = false;
     if (uQueueIndex == 2 || uQueueIndex == 3) {
         // control queues
         pQueueParam->Interrupt = pContext->WdfInterrupt;
