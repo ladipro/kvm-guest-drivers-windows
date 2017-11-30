@@ -84,6 +84,7 @@ int virtqueue_add_buf(
         /* Use one indirect descriptor */
         struct vring_desc *desc = (struct vring_desc *)va_indirect;
 
+        ASSERT(vq->vdev->indirect_descriptors_enabled);
         for (i = 0; i < out + in; i++) {
             desc[i].flags = (i < out ? 0 : VIRTQ_DESC_F_WRITE);
             desc[i].flags |= VIRTQ_DESC_F_NEXT;
@@ -168,7 +169,7 @@ void *virtqueue_get_buf(
     put_unused_desc_chain(vq, idx);
 
     vq->last_used++;
-    if (vq->event_suppression_enabled && virtqueue_is_interrupt_enabled(vq)) {
+    if (vq->vdev->event_suppression_enabled && virtqueue_is_interrupt_enabled(vq)) {
         vring_used_event(&vq->vring) = vq->last_used;
         KeMemoryBarrier();
     }
@@ -196,7 +197,7 @@ bool virtqueue_kick_prepare(struct virtqueue *vq)
     new = vq->master_vring_avail.idx;
     vq->num_added_since_kick = 0;
 
-    if (vq->event_suppression_enabled) {
+    if (vq->vdev->event_suppression_enabled) {
         return wrap_around || (bool)vring_need_event(vring_avail_event(&vq->vring), new, old);
     } else {
         return !(vq->vring.used->flags & VIRTQ_USED_F_NO_NOTIFY);
@@ -217,7 +218,7 @@ bool virtqueue_enable_cb(struct virtqueue *vq)
 {
     if (!virtqueue_is_interrupt_enabled(vq)) {
         vq->master_vring_avail.flags &= ~VIRTQ_AVAIL_F_NO_INTERRUPT;
-        if (!vq->event_suppression_enabled)
+        if (!vq->vdev->event_suppression_enabled)
         {
             vq->vring.avail->flags &= ~VIRTQ_AVAIL_F_NO_INTERRUPT;
         }
@@ -236,7 +237,7 @@ bool virtqueue_enable_cb_delayed(struct virtqueue *vq)
 
     if (!virtqueue_is_interrupt_enabled(vq)) {
         vq->master_vring_avail.flags &= ~VIRTQ_AVAIL_F_NO_INTERRUPT;
-        if (!vq->event_suppression_enabled)
+        if (!vq->vdev->event_suppression_enabled)
         {
             vq->vring.avail->flags &= ~VIRTQ_AVAIL_F_NO_INTERRUPT;
         }
@@ -254,7 +255,7 @@ void virtqueue_disable_cb(struct virtqueue *vq)
 {
     if (virtqueue_is_interrupt_enabled(vq)) {
         vq->master_vring_avail.flags |= VIRTQ_AVAIL_F_NO_INTERRUPT;
-        if (!vq->event_suppression_enabled)
+        if (!vq->vdev->event_suppression_enabled)
         {
             vq->vring.avail->flags |= VIRTQ_AVAIL_F_NO_INTERRUPT;
         }
@@ -291,7 +292,6 @@ struct virtqueue *vring_new_virtqueue(
     vq->vdev = vdev;
     vq->notification_cb = notify;
     vq->index = index;
-    vq->event_suppression_enabled = false;
 
     /* Build a linked list of unused descriptors */
     vq->num_unused = num;
@@ -309,7 +309,6 @@ void virtqueue_shutdown(struct virtqueue *vq)
     unsigned int num = vq->vring.num;
     void *pages = vq->vring.desc;
     unsigned int vring_align = vq->vdev->addr ? PAGE_SIZE : SMP_CACHE_BYTES;
-    bool event_suppression_enabled = vq->event_suppression_enabled;
 
     RtlZeroMemory(pages, vring_size(num, vring_align));
     (void)vring_new_virtqueue(
@@ -320,7 +319,6 @@ void virtqueue_shutdown(struct virtqueue *vq)
         pages,
         vq->notification_cb,
         vq);
-    virtio_set_queue_event_suppression(vq, event_suppression_enabled);
 }
 
 /* Gets the opaque pointer associated with a not-yet-returned buffer, or NULL if no buffer is available
@@ -351,31 +349,24 @@ unsigned int vring_control_block_size()
 /* Negotiates virtio transport features */
 void vring_transport_features(
     VirtIODevice *vdev,
-    u64 *features) /* points to device features on entry and driver accepted features on return */
+    u64 *features) /* points to driver accepted features */
 {
     unsigned int i;
 
+    /* first disable everything */
     for (i = VIRTIO_TRANSPORT_F_START; i < VIRTIO_TRANSPORT_F_END; i++) {
-        if (i != VIRTIO_RING_F_INDIRECT_DESC &&
-            i != VIRTIO_RING_F_EVENT_IDX &&
-            i != VIRTIO_F_VERSION_1) {
-            virtio_feature_disable(*features, i);
-        }
+        virtio_feature_disable(*features, i);
     }
-}
 
-/* Enables or disables the new virtio event suppression logic on a virtqueue */
-void virtio_set_queue_event_suppression(struct virtqueue *vq, bool enable)
-{
-    vq->event_suppression_enabled = enable;
-
-    /* When event/interrupt suppression is enabled, the driver must set avail
-     * ring flags to 0 according to spec
-     */
-    if (enable)
-    {
-        vq->vring.avail->flags = 0;
-        vq->master_vring_avail.flags = 0;
+    /* then enable the transport features we are aware of */
+    if (vdev->indirect_descriptors_enabled) {
+        virtio_feature_enable(*features, VIRTIO_RING_F_INDIRECT_DESC);
+    }
+    if (vdev->event_suppression_enabled) {
+        virtio_feature_enable(*features, VIRTIO_RING_F_EVENT_IDX);
+    }
+    if (vdev->modern_virtio_enabled) {
+        virtio_feature_enable(*features, VIRTIO_F_VERSION_1);
     }
 }
 

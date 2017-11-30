@@ -113,14 +113,23 @@ void virtio_device_ready(VirtIODevice *vdev)
 
 u64 virtio_get_features(VirtIODevice *vdev)
 {
-    return vdev->device->get_features(vdev);
+    u64 features = vdev->device->get_features(vdev);
+    vdev->indirect_descriptors_enabled = virtio_is_feature_enabled(features, VIRTIO_RING_F_INDIRECT_DESC);
+    vdev->event_suppression_enabled = virtio_is_feature_enabled(features, VIRTIO_RING_F_EVENT_IDX);
+    vdev->modern_virtio_enabled = virtio_is_feature_enabled(features, VIRTIO_F_VERSION_1);
+
+    return features;
 }
 
 NTSTATUS virtio_set_features(VirtIODevice *vdev, u64 features)
 {
     unsigned char dev_status;
-    NTSTATUS status = vdev->device->set_features(vdev, features);
+    NTSTATUS status;
 
+    /* Give virtio_ring a chance to accept transport features. */
+    vring_transport_features(vdev, &features);
+
+    status = vdev->device->set_features(vdev, features);
     if (!NT_SUCCESS(status)) {
         return status;
     }
